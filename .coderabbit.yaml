@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit 設定。レビューコメント・要約・チャット応答を日本語で行う。
+language: ja-JP
+
+tone_instructions: >-
+  日本語で、簡潔かつ具体的にレビューしてください。指摘は重要度の高いものを優先し、
+  該当ファイル・行と修正案を明確に示してください。
+
+early_access: false
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+  # ドキュメント（日本語 Markdown）も含めてレビュー対象とする
+  path_filters:
+    - "!**/.build/**"
+    - "!**/pnpm-lock.yaml"
+
+chat:
+  auto_reply: true
