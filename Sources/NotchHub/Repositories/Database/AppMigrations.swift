@@ -39,6 +39,20 @@ enum AppMigrations {
         }
     ]
 
+    /// Migrations for `settings.db` (要件定義.md §20). Simple key/value store.
+    static let settings: [Migration] = [
+        Migration(version: 1) { database in
+            try database.exec(
+                """
+                CREATE TABLE IF NOT EXISTS settings (
+                    key   TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
+                """
+            )
+        }
+    ]
+
     /// Migrations for `airdrop_history.db` (要件定義.md §10.5). The recipient is
     /// intentionally not part of the schema.
     static let airDropHistory: [Migration] = [

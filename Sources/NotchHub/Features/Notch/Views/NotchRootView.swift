@@ -3,8 +3,11 @@ import SwiftUI
 /// Root SwiftUI content hosted inside the notch `NSPanel`. Renders the current
 /// ``NotchMode`` and overlays any toast. Holds no domain state of its own.
 struct NotchRootView: View {
-    let viewModel: NotchViewModel
-    let shelfViewModel: ShelfViewModel
+    let scene: NotchScene
+
+    private var viewModel: NotchViewModel {
+        scene.notch
+    }
 
     var body: some View {
         let size = NotchLayout.size(for: viewModel.mode)
@@ -33,7 +36,7 @@ struct NotchRootView: View {
         case .dragging:
             DraggingNotchView(hoveredZone: viewModel.dragSession?.hoveredZone)
         case .expanded:
-            ExpandedNotchView(shelfViewModel: shelfViewModel)
+            ExpandedNotchView(scene: scene)
         }
     }
 }

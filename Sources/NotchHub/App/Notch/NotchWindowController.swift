@@ -9,33 +9,34 @@ import SwiftUI
 /// SwiftUI feature views (フロントエンド規約.md §SwiftUI/AppKit の使い分け).
 @MainActor
 final class NotchWindowController {
-    private let viewModel: NotchViewModel
-    private let shelfViewModel: ShelfViewModel
+    private let scene: NotchScene
     private let screenProvider: ScreenProviding
     private let dragMonitor: GlobalDragMonitoring
     private let screenshotMonitor: ScreenshotMonitoring
     private let screenshotImporter: ScreenshotImportService
     private let panel: NSPanel
 
+    private var viewModel: NotchViewModel {
+        scene.notch
+    }
+
     private var outsideClickMonitor: Any?
     private var keyMonitor: Any?
 
     init(
-        viewModel: NotchViewModel,
-        shelfViewModel: ShelfViewModel,
+        scene: NotchScene,
         screenProvider: ScreenProviding,
         dragMonitor: GlobalDragMonitoring,
         screenshotMonitor: ScreenshotMonitoring,
         screenshotImporter: ScreenshotImportService
     ) {
-        self.viewModel = viewModel
-        self.shelfViewModel = shelfViewModel
+        self.scene = scene
         self.screenProvider = screenProvider
         self.dragMonitor = dragMonitor
         self.screenshotMonitor = screenshotMonitor
         self.screenshotImporter = screenshotImporter
 
-        let initialFrame = NotchGeometry.frame(for: viewModel.mode, on: viewModel.currentScreen)
+        let initialFrame = NotchGeometry.frame(for: scene.notch.mode, on: scene.notch.currentScreen)
         panel = NSPanel(
             contentRect: initialFrame,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -43,9 +44,7 @@ final class NotchWindowController {
             defer: false
         )
         configurePanel()
-        panel.contentView = NSHostingView(
-            rootView: NotchRootView(viewModel: viewModel, shelfViewModel: shelfViewModel)
-        )
+        panel.contentView = NSHostingView(rootView: NotchRootView(scene: scene))
     }
 
     /// Shows the panel and starts observing the view model and input.
@@ -111,8 +110,8 @@ final class NotchWindowController {
         screenshotMonitor.onScreenshot = { [weak self] url in
             MainActor.assumeIsolated {
                 guard let self, self.screenshotImporter.importScreenshot(at: url) != nil else { return }
-                self.viewModel.showToast(ToastMessage(text: "Screenshot added to Shelf"))
-                self.shelfViewModel.refresh()
+                self.scene.notch.showToast(ToastMessage(text: "Screenshot added to Shelf"))
+                self.scene.shelf.refresh()
             }
         }
     }

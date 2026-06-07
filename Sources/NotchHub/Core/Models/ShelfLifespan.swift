@@ -2,7 +2,7 @@ import Foundation
 
 /// How long unpinned Shelf items live before automatic removal
 /// (要件定義.md §8.9). Pinned items are exempt from expiry.
-enum ShelfLifespan: Equatable {
+enum ShelfLifespan: Equatable, Hashable {
     case forever
     case days(Int)
 

@@ -6,7 +6,7 @@ enum ShareOutcome: String, Equatable {
 }
 
 /// What to do with the source after an AirDrop completes (要件定義.md §10.3/§10.4).
-enum AirDropPostSendAction: Equatable {
+enum AirDropPostSendAction: Equatable, Hashable {
     case keep
     case delete
 }

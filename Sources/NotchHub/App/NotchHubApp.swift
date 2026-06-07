@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var composition: AppComposition?
     private var menuBarController: MenuBarController?
     private var notchController: NotchWindowController?
+    private var settingsWindowController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_: Notification) {
         let composition = AppComposition()
@@ -29,11 +30,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             Log.app.error("Bootstrap failed: \(error.localizedDescription, privacy: .public)")
         }
-        menuBarController = MenuBarController(loginItemManager: composition.loginItemManager)
 
         let notchController = composition.makeNotchController()
         notchController.start()
         self.notchController = notchController
+
+        let settingsWindowController = composition.makeSettingsWindowController()
+        self.settingsWindowController = settingsWindowController
+
+        menuBarController = MenuBarController(
+            loginItemManager: composition.loginItemManager,
+            onOpenSettings: { [weak settingsWindowController] in settingsWindowController?.show() }
+        )
+
         self.composition = composition
     }
 

@@ -6,9 +6,11 @@ import AppKit
 final class MenuBarController {
     private let statusItem: NSStatusItem
     private let loginItemManager: LoginItemManaging
+    private let onOpenSettings: () -> Void
 
-    init(loginItemManager: LoginItemManaging) {
+    init(loginItemManager: LoginItemManaging, onOpenSettings: @escaping () -> Void) {
         self.loginItemManager = loginItemManager
+        self.onOpenSettings = onOpenSettings
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         configure()
     }
@@ -51,8 +53,7 @@ final class MenuBarController {
 
     @objc
     private func openSettings() {
-        // Settings UI arrives in Phase 4.
-        Log.app.info("Settings requested")
+        onOpenSettings()
     }
 
     @objc
