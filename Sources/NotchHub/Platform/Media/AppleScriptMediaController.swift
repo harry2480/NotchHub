@@ -40,6 +40,40 @@ final class AppleScriptMediaController: MediaControlling {
         }
     }
 
+    func setVolume(_ value: Int) {
+        let clamped = max(0, min(100, value))
+        run(command: "set sound volume to \(clamped)", on: activeSource())
+    }
+
+    func seek(to seconds: Double) {
+        // Both players take seconds for `player position`.
+        let position = max(0, seconds)
+        run(command: "set player position to \(position)", on: activeSource())
+    }
+
+    func artwork() -> MediaArtwork? {
+        let source = activeSource()
+        guard isRunning(source) else { return nil }
+        switch source {
+        case .appleMusic:
+            // Apple Music exposes raw artwork bytes locally (no network).
+            let script = """
+            tell application id "\(Player.music)"
+                if player state is not stopped and (count of artworks of current track) > 0 then
+                    return data of artwork 1 of current track
+                end if
+            end tell
+            """
+            return runScriptData(script).map(MediaArtwork.data)
+        case .spotify:
+            // Spotify only exposes an artwork URL; the caller fetches it
+            // asynchronously so the main thread is never blocked on the network.
+            let script = "tell application id \"\(Player.spotify)\" to get artwork url of current track"
+            guard let urlString = runScript(script), let url = URL(string: urlString) else { return nil }
+            return .remote(url)
+        }
+    }
+
     // MARK: - AppleScript
 
     private func bundleID(_ source: NowPlaying.Source) -> String {
@@ -58,19 +92,27 @@ final class AppleScriptMediaController: MediaControlling {
         let script = """
         tell application id "\(bundleID(source))"
             if player state is playing or player state is paused then
-                return (name of current track) & "\\n" & (artist of current track) & "\\n" & (player state is playing)
+                set t to current track
+                return (name of t) & "\\n" & (artist of t) & "\\n" & (player state is playing) ¬
+                    & "\\n" & (player position) & "\\n" & (duration of t) & "\\n" & (sound volume)
             end if
         end tell
         return ""
         """
         guard let output = runScript(script), !output.isEmpty else { return nil }
         let parts = output.components(separatedBy: "\n")
-        guard parts.count >= 3 else { return nil }
+        guard parts.count >= 6 else { return nil }
+        // Spotify reports track duration in milliseconds; Apple Music in seconds.
+        let rawDuration = Double(parts[4]) ?? 0
+        let duration = source == .spotify ? rawDuration / 1000 : rawDuration
         return NowPlaying(
             source: source,
             title: parts[0],
             artist: parts[1],
             isPlaying: parts[2].contains("true"),
+            position: Double(parts[3]) ?? 0,
+            duration: duration,
+            volume: Int(Double(parts[5]) ?? 0),
             artwork: nil
         )
     }
@@ -94,5 +136,18 @@ final class AppleScriptMediaController: MediaControlling {
             return nil
         }
         return result.stringValue
+    }
+
+    /// Runs a script whose result is raw bytes (e.g. artwork data).
+    private func runScriptData(_ source: String) -> Data? {
+        var error: NSDictionary?
+        guard let script = NSAppleScript(source: source) else { return nil }
+        let result = script.executeAndReturnError(&error)
+        if let error {
+            Log.app.error("AppleScript error: \(error.description, privacy: .public)")
+            return nil
+        }
+        let data = result.data
+        return data.isEmpty ? nil : data
     }
 }

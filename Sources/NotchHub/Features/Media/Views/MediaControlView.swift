@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// The Media tab: artwork, title/artist and Play/Pause / Next / Previous
-/// (要件定義.md §18.1–18.2).
+/// The Media tab: artwork, title/artist, transport controls plus a seek bar and
+/// a volume slider (要件定義.md §18.1–18.2 + user-requested controls).
 struct MediaControlView: View {
-    let viewModel: MediaViewModel
+    @Bindable var viewModel: MediaViewModel
 
     var body: some View {
         Group {
@@ -36,7 +36,7 @@ struct MediaControlView: View {
 
     private func content(_ track: NowPlaying) -> some View {
         VStack(spacing: 12) {
-            artwork(track)
+            artwork
             VStack(spacing: 2) {
                 Text(track.title)
                     .font(.headline)
@@ -46,15 +46,17 @@ struct MediaControlView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
+            progress
             controls(track)
+            volume
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(NotchStyle.contentPadding)
     }
 
     @ViewBuilder
-    private func artwork(_ track: NowPlaying) -> some View {
-        if let data = track.artwork, let image = NSImage(data: data) {
+    private var artwork: some View {
+        if let data = viewModel.artwork, let image = NSImage(data: data) {
             Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -65,6 +67,46 @@ struct MediaControlView: View {
                 .fill(Color.secondary.opacity(0.15))
                 .frame(width: 96, height: 96)
                 .overlay(Image(systemName: "music.note").foregroundStyle(.secondary))
+        }
+    }
+
+    // MARK: - Seek bar
+
+    private var progress: some View {
+        VStack(spacing: 2) {
+            Slider(
+                value: $viewModel.position,
+                in: 0 ... max(viewModel.duration, 1),
+                onEditingChanged: viewModel.seekEditingChanged
+            )
+            .controlSize(.mini)
+            .disabled(viewModel.duration <= 0)
+            HStack {
+                Text(Self.timeString(viewModel.position))
+                Spacer()
+                Text(Self.timeString(viewModel.duration))
+            }
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: - Volume
+
+    private var volume: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "speaker.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Slider(
+                value: $viewModel.volume,
+                in: 0 ... 100,
+                onEditingChanged: viewModel.volumeEditingChanged
+            )
+            .controlSize(.mini)
+            Image(systemName: "speaker.wave.3.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -82,5 +124,11 @@ struct MediaControlView: View {
                 .font(.system(size: 18))
         }
         .buttonStyle(.borderless)
+    }
+
+    /// Formats seconds as `m:ss` (clamped at 0).
+    static func timeString(_ seconds: Double) -> String {
+        let total = Int(max(0, seconds).rounded())
+        return String(format: "%d:%02d", total / 60, total % 60)
     }
 }
