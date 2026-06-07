@@ -38,4 +38,23 @@ enum AppMigrations {
             )
         }
     ]
+
+    /// Migrations for `airdrop_history.db` (要件定義.md §10.5). The recipient is
+    /// intentionally not part of the schema.
+    static let airDropHistory: [Migration] = [
+        Migration(version: 1) { database in
+            try database.exec(
+                """
+                CREATE TABLE IF NOT EXISTS airdrop_history (
+                    id            TEXT PRIMARY KEY,
+                    name          TEXT NOT NULL,
+                    kind          TEXT NOT NULL,
+                    date          REAL NOT NULL,
+                    original_path TEXT,
+                    outcome       TEXT NOT NULL
+                );
+                """
+            )
+        }
+    ]
 }

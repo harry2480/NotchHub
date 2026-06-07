@@ -3,42 +3,75 @@ import Foundation
 import Testing
 
 struct DefaultDropCoordinatorTests {
-    private func makeCoordinator() -> (DefaultDropCoordinator, StubShelfRepository) {
-        let repo = StubShelfRepository()
+    private struct Harness {
+        let coordinator: DefaultDropCoordinator
+        let shelfRepo: StubShelfRepository
+        let presenter: StubSharingPresenter
+        let history: StubAirDropHistoryRepository
+    }
+
+    private func makeHarness() -> Harness {
+        let shelfRepo = StubShelfRepository()
         let resolver = StubBookmarkResolver()
-        let service = ShelfService(
-            repository: repo,
+        let shelfService = ShelfService(
+            repository: shelfRepo,
             bookmarkResolver: resolver,
             workspace: StubWorkspaceOpener()
         )
+        let presenter = StubSharingPresenter()
+        let history = StubAirDropHistoryRepository()
+        let shareService = ShareService(
+            sharing: presenter,
+            tempFileWriter: StubTempFileWriter(),
+            history: history
+        )
         let factory = ShelfItemFactory(bookmarkResolver: resolver) { Date(timeIntervalSince1970: 1_000_000) }
-        return (DefaultDropCoordinator(shelfService: service, itemFactory: factory), repo)
+        let coordinator = DefaultDropCoordinator(
+            shelfService: shelfService,
+            shareService: shareService,
+            itemFactory: factory
+        )
+        return Harness(coordinator: coordinator, shelfRepo: shelfRepo, presenter: presenter, history: history)
     }
 
     @Test
     func shelfDropPersistsItemsAndIsUndoable() throws {
-        let (coordinator, repo) = makeCoordinator()
-        let toast = coordinator.handle(DropRequest(zone: .shelf, items: [.text("hello"), .text("world")]))
+        let harness = makeHarness()
+        let toast = harness.coordinator.handle(DropRequest(zone: .shelf, items: [.text("hello"), .text("world")]))
         #expect(toast.isUndoable)
         #expect(toast.text == "Added 2 to Shelf")
-        #expect(try repo.fetchAll().count == 2)
+        #expect(try harness.shelfRepo.fetchAll().count == 2)
     }
 
     @Test
     func undoRemovesLastShelfDrop() throws {
-        let (coordinator, repo) = makeCoordinator()
+        let harness = makeHarness()
         let request = DropRequest(zone: .shelf, items: [.text("hello")])
-        _ = coordinator.handle(request)
-        #expect(try repo.fetchAll().count == 1)
-
-        coordinator.undo(request)
-        #expect(try repo.fetchAll().isEmpty)
+        _ = harness.coordinator.handle(request)
+        #expect(try harness.shelfRepo.fetchAll().count == 1)
+        harness.coordinator.undo(request)
+        #expect(try harness.shelfRepo.fetchAll().isEmpty)
     }
 
     @Test
-    func shareAndAirDropAreNotUndoable() {
-        let (coordinator, _) = makeCoordinator()
-        #expect(!coordinator.handle(DropRequest(zone: .share, items: [.text("x")])).isUndoable)
-        #expect(!coordinator.handle(DropRequest(zone: .airDrop, items: [.text("x")])).isUndoable)
+    func shareZonePresentsShareSheet() {
+        let harness = makeHarness()
+        let toast = harness.coordinator.handle(DropRequest(zone: .share, items: [.text("x")]))
+        #expect(!toast.isUndoable)
+        #expect(harness.presenter.sharedURLs.count == 1)
+    }
+
+    @Test
+    func airDropZonePresentsAndRecordsHistory() throws {
+        let harness = makeHarness()
+        _ = harness.coordinator.handle(DropRequest(
+            zone: .airDrop,
+            items: [.fileURL(URL(fileURLWithPath: "/tmp/a.pdf"))]
+        ))
+        #expect(harness.presenter.airDroppedURLs.count == 1)
+        let records = try harness.history.fetchAll()
+        #expect(records.count == 1)
+        #expect(records.first?.outcome == .sent)
+        #expect(records.first?.originalPath == "/tmp/a.pdf")
     }
 }

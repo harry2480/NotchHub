@@ -150,6 +150,12 @@ final class NotchViewModel {
         toast = nil
     }
 
+    /// Shows a toast from outside a drop (e.g. a screenshot was auto-imported —
+    /// 要件定義.md §9.2).
+    func showToast(_ message: ToastMessage) {
+        toast = message
+    }
+
     /// The zone currently under the cursor given the dragging notch frame.
     func hoveredZone(at point: CGPoint) -> DropZone? {
         let frame = NotchGeometry.frame(for: .dragging, on: currentScreen)

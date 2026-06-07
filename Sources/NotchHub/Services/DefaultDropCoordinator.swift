@@ -1,15 +1,18 @@
 import Foundation
 
-/// Production ``DropCoordinating`` (Phase 2): the Shelf zone persists items via
-/// ``ShelfService``; Share / AirDrop remain placeholders until Phase 3. Undo
-/// removes the items inserted by the most recent Shelf drop (要件定義.md §7.4).
+/// Production ``DropCoordinating``: the Shelf zone persists items via
+/// ``ShelfService``; the Share / AirDrop zones present the macOS sheets via
+/// ``ShareService``. Undo removes the items inserted by the most recent Shelf
+/// drop (要件定義.md §7.4).
 final class DefaultDropCoordinator: DropCoordinating {
     private let shelfService: ShelfService
+    private let shareService: ShareService
     private let itemFactory: ShelfItemFactory
     private var lastInsertedIDs: [ShelfItem.ID] = []
 
-    init(shelfService: ShelfService, itemFactory: ShelfItemFactory) {
+    init(shelfService: ShelfService, shareService: ShareService, itemFactory: ShelfItemFactory) {
         self.shelfService = shelfService
+        self.shareService = shareService
         self.itemFactory = itemFactory
     }
 
@@ -18,9 +21,23 @@ final class DefaultDropCoordinator: DropCoordinating {
         case .shelf:
             addToShelf(request.items)
         case .share:
-            ToastMessage(text: "Opening Share…")
+            present(request.items, via: shareService.share, label: "Share")
         case .airDrop:
-            ToastMessage(text: "Opening AirDrop…")
+            present(request.items, via: shareService.airDrop, label: "AirDrop")
+        }
+    }
+
+    private func present(
+        _ items: [DroppedItem],
+        via action: ([DroppedItem]) throws -> Void,
+        label: String
+    ) -> ToastMessage {
+        do {
+            try action(items)
+            return ToastMessage(text: "Opening \(label)…")
+        } catch {
+            Log.shelf.error("\(label, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            return ToastMessage(text: "Couldn't open \(label)")
         }
     }
 

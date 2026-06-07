@@ -10,8 +10,11 @@ import SwiftUI
 @MainActor
 final class NotchWindowController {
     private let viewModel: NotchViewModel
+    private let shelfViewModel: ShelfViewModel
     private let screenProvider: ScreenProviding
     private let dragMonitor: GlobalDragMonitoring
+    private let screenshotMonitor: ScreenshotMonitoring
+    private let screenshotImporter: ScreenshotImportService
     private let panel: NSPanel
 
     private var outsideClickMonitor: Any?
@@ -21,11 +24,16 @@ final class NotchWindowController {
         viewModel: NotchViewModel,
         shelfViewModel: ShelfViewModel,
         screenProvider: ScreenProviding,
-        dragMonitor: GlobalDragMonitoring
+        dragMonitor: GlobalDragMonitoring,
+        screenshotMonitor: ScreenshotMonitoring,
+        screenshotImporter: ScreenshotImportService
     ) {
         self.viewModel = viewModel
+        self.shelfViewModel = shelfViewModel
         self.screenProvider = screenProvider
         self.dragMonitor = dragMonitor
+        self.screenshotMonitor = screenshotMonitor
+        self.screenshotImporter = screenshotImporter
 
         let initialFrame = NotchGeometry.frame(for: viewModel.mode, on: viewModel.currentScreen)
         panel = NSPanel(
@@ -45,8 +53,10 @@ final class NotchWindowController {
         observeAndApplyFrame()
         panel.orderFrontRegardless()
         wireDragMonitor()
+        wireScreenshotMonitor()
         installInteractionMonitors()
         dragMonitor.start()
+        screenshotMonitor.start()
     }
 
     // MARK: - Panel
@@ -96,6 +106,17 @@ final class NotchWindowController {
         }
     }
 
+    private func wireScreenshotMonitor() {
+        // The monitor delivers on the main thread; import + toast on the main actor.
+        screenshotMonitor.onScreenshot = { [weak self] url in
+            MainActor.assumeIsolated {
+                guard let self, self.screenshotImporter.importScreenshot(at: url) != nil else { return }
+                self.viewModel.showToast(ToastMessage(text: "Screenshot added to Shelf"))
+                self.shelfViewModel.refresh()
+            }
+        }
+    }
+
     private func installInteractionMonitors() {
         // Close on a click outside the notch (要件定義.md §5.3 主動線).
         outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] _ in
@@ -115,6 +136,7 @@ final class NotchWindowController {
 
     func stop() {
         dragMonitor.stop()
+        screenshotMonitor.stop()
         if let outsideClickMonitor {
             NSEvent.removeMonitor(outsideClickMonitor)
         }
