@@ -4,10 +4,14 @@ import Foundation
 /// configurable now-playing value.
 final class StubMediaController: MediaControlling {
     var current: NowPlaying?
+    var artworkData: Data?
     private(set) var commands: [String] = []
+    private(set) var lastVolume: Int?
+    private(set) var lastSeek: Double?
 
-    init(current: NowPlaying? = nil) {
+    init(current: NowPlaying? = nil, artworkData: Data? = nil) {
         self.current = current
+        self.artworkData = artworkData
     }
 
     func nowPlaying() -> NowPlaying? {
@@ -28,5 +32,19 @@ final class StubMediaController: MediaControlling {
 
     func openDefaultPlayer() {
         commands.append("openDefaultPlayer")
+    }
+
+    func setVolume(_ value: Int) {
+        lastVolume = value
+        commands.append("setVolume(\(value))")
+    }
+
+    func seek(to seconds: Double) {
+        lastSeek = seconds
+        commands.append("seek(\(seconds))")
+    }
+
+    func artwork() -> Data? {
+        artworkData
     }
 }
