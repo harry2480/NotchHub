@@ -15,6 +15,27 @@ enum AppMigrations {
                 );
                 """
             )
+        },
+        Migration(version: 2) { database in
+            // Shelf items (要件定義.md §8). Files/folders are held by bookmark;
+            // text/url/markdown store content inline.
+            try database.exec(
+                """
+                CREATE TABLE IF NOT EXISTS shelf_items (
+                    id         TEXT PRIMARY KEY,
+                    kind       TEXT NOT NULL,
+                    name       TEXT NOT NULL,
+                    created_at REAL NOT NULL,
+                    is_pinned  INTEGER NOT NULL DEFAULT 0,
+                    body       TEXT,
+                    url_string TEXT,
+                    bookmark   BLOB
+                );
+                """
+            )
+            try database.exec(
+                "CREATE INDEX IF NOT EXISTS idx_shelf_order ON shelf_items (is_pinned DESC, created_at DESC);"
+            )
         }
     ]
 }

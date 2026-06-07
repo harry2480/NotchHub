@@ -5,17 +5,28 @@ import SwiftUI
 /// their features land in later phases. Tab selection is local UI state for now;
 /// the configurable initial tab arrives with Settings (Phase 4).
 struct ExpandedNotchView: View {
+    let shelfViewModel: ShelfViewModel
     @State private var selectedTab: NotchTab = .shelf
 
     var body: some View {
         VStack(spacing: 0) {
             tabBar
             Divider()
-            placeholder
+            content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: NotchStyle.cornerRadius, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch selectedTab {
+        case .shelf:
+            ShelfListView(viewModel: shelfViewModel)
+        case .calendar, .media, .ai:
+            placeholder
+        }
     }
 
     private var tabBar: some View {

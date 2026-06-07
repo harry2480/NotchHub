@@ -17,7 +17,12 @@ final class NotchWindowController {
     private var outsideClickMonitor: Any?
     private var keyMonitor: Any?
 
-    init(viewModel: NotchViewModel, screenProvider: ScreenProviding, dragMonitor: GlobalDragMonitoring) {
+    init(
+        viewModel: NotchViewModel,
+        shelfViewModel: ShelfViewModel,
+        screenProvider: ScreenProviding,
+        dragMonitor: GlobalDragMonitoring
+    ) {
         self.viewModel = viewModel
         self.screenProvider = screenProvider
         self.dragMonitor = dragMonitor
@@ -30,7 +35,9 @@ final class NotchWindowController {
             defer: false
         )
         configurePanel()
-        panel.contentView = NSHostingView(rootView: NotchRootView(viewModel: viewModel))
+        panel.contentView = NSHostingView(
+            rootView: NotchRootView(viewModel: viewModel, shelfViewModel: shelfViewModel)
+        )
     }
 
     /// Shows the panel and starts observing the view model and input.

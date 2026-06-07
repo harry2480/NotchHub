@@ -4,6 +4,7 @@ import SwiftUI
 /// ``NotchMode`` and overlays any toast. Holds no domain state of its own.
 struct NotchRootView: View {
     let viewModel: NotchViewModel
+    let shelfViewModel: ShelfViewModel
 
     var body: some View {
         let size = NotchLayout.size(for: viewModel.mode)
@@ -32,7 +33,7 @@ struct NotchRootView: View {
         case .dragging:
             DraggingNotchView(hoveredZone: viewModel.dragSession?.hoveredZone)
         case .expanded:
-            ExpandedNotchView()
+            ExpandedNotchView(shelfViewModel: shelfViewModel)
         }
     }
 }
