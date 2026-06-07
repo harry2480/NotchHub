@@ -56,8 +56,11 @@ final class ShelfService {
     @discardableResult
     func setPinned(_ id: ShelfItem.ID, _ pinned: Bool) throws -> PinResult {
         if pinned {
-            let pinnedCount = try repository.fetchAll().filter(\.isPinned).count
-            guard pinnedCount < ShelfLimits.pinned else { return .limitReached }
+            let current = try repository.fetchAll()
+            // Re-pinning an already-pinned item is idempotent and must not be
+            // refused by the limit (the count would include the item itself).
+            if current.first(where: { $0.id == id })?.isPinned == true { return .pinned }
+            guard current.filter(\.isPinned).count < ShelfLimits.pinned else { return .limitReached }
             try repository.setPinned(id: id, pinned: true)
             return .pinned
         } else {

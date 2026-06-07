@@ -67,6 +67,16 @@ struct ShelfServiceTests {
     }
 
     @Test
+    func rePinningAlreadyPinnedItemIsIdempotentAtLimit() throws {
+        // All pinned slots full; re-pinning one that is already pinned must
+        // succeed (idempotent), not hit the limit.
+        let pinned = try (0 ..< ShelfLimits.pinned).map { try text("p\($0)", at: TimeInterval($0), pinned: true) }
+        let harness = makeHarness(items: pinned)
+        let target = try #require(pinned.first)
+        #expect(try harness.service.setPinned(target.id, true) == .pinned)
+    }
+
+    @Test
     func sweepExpiredRemovesUnpinnedExpiredOnly() throws {
         let old = try text("old", at: 0) // created at epoch
         let pinnedOld = try text("pinnedOld", at: 0, pinned: true)
