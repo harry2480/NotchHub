@@ -6,7 +6,10 @@ import AppKit
 /// handling), matching the AppKit requirement.
 final class AppKitSharingPresenter: NSObject, SharingPresenting {
     private let anchor: () -> NSView?
-    private var activeDelegate: AirDropDelegate?
+    /// Keyed by identity so concurrent AirDrops don't clobber each other's
+    /// delegate (`NSSharingService.delegate` is weak, so we must retain it until
+    /// its callback fires).
+    private var activeDelegates: [ObjectIdentifier: AirDropDelegate] = [:]
 
     init(anchor: @escaping () -> NSView?) {
         self.anchor = anchor
@@ -23,30 +26,39 @@ final class AppKitSharingPresenter: NSObject, SharingPresenting {
             completion(.failed)
             return
         }
-        let delegate = AirDropDelegate { [weak self] outcome in
-            completion(outcome)
-            self?.activeDelegate = nil
-        }
-        activeDelegate = delegate
+        let delegate = AirDropDelegate(completion: completion)
+        let key = ObjectIdentifier(delegate)
+        delegate.onFinish = { [weak self] in self?.activeDelegates[key] = nil }
+        activeDelegates[key] = delegate
         service.delegate = delegate
         service.perform(withItems: urls)
     }
 }
 
-/// Captures the AirDrop sharing service outcome via its delegate callbacks.
+/// Captures the AirDrop sharing service outcome via its delegate callbacks and
+/// reports completion exactly once.
 private final class AirDropDelegate: NSObject, NSSharingServiceDelegate {
     private let completion: (ShareOutcome) -> Void
+    var onFinish: (() -> Void)?
+    private var finished = false
 
     init(completion: @escaping (ShareOutcome) -> Void) {
         self.completion = completion
     }
 
+    private func finish(_ outcome: ShareOutcome) {
+        guard !finished else { return }
+        finished = true
+        completion(outcome)
+        onFinish?()
+    }
+
     func sharingService(_: NSSharingService, didShareItems _: [Any]) {
-        completion(.sent)
+        finish(.sent)
     }
 
     func sharingService(_: NSSharingService, didFailToShareItems _: [Any], error: Error) {
         let cancelled = (error as NSError).code == NSUserCancelledError
-        completion(cancelled ? .cancelled : .failed)
+        finish(cancelled ? .cancelled : .failed)
     }
 }
