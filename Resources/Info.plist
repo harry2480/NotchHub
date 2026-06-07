@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reference Info.plist for NotchHub (インフラストラクチャ規約.md §権限).
+
+  This documents the bundle keys the packaged .app requires. The SPM build
+  produces a bare executable; this plist is applied when wrapping the binary in
+  an .app bundle for distribution. Privacy usage strings follow the policy of
+  requesting permissions only when needed (要件定義.md §21).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>NotchHub</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.harry.notchhub</string>
+    <key>CFBundleExecutable</key>
+    <string>NotchHub</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <!-- Menu-bar / notch agent: no Dock icon -->
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSCalendarsUsageDescription</key>
+    <string>NotchHub displays your upcoming events in the notch.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>NotchHub controls Apple Music and Spotify playback.</string>
+</dict>
+</plist>
