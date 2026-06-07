@@ -28,7 +28,7 @@ fi
 
 echo "==> Assembling $APP"
 rm -rf "$APP"
-mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources"
+mkdir -p "$CONTENTS/MacOS"
 cp "$BINARY" "$CONTENTS/MacOS/$APP_NAME"
 cp "Resources/Info.plist" "$CONTENTS/Info.plist"
 printf 'APPL????' > "$CONTENTS/PkgInfo"

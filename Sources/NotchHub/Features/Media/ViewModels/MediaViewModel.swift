@@ -34,6 +34,11 @@ final class MediaViewModel {
         pollTimer = nil
     }
 
+    deinit {
+        // Guard against a leaked run-loop timer if onDisappear was missed.
+        pollTimer?.invalidate()
+    }
+
     /// Opens Apple Music so the user can start playback (要件定義.md §18).
     func openDefaultPlayer() {
         service.openDefaultPlayer()

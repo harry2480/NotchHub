@@ -35,12 +35,18 @@ final class DropHostingView: NSView {
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         onDragMoved?(globalPoint(of: sender))
-        return .copy
+        return operation(for: sender)
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
         onDragMoved?(globalPoint(of: sender))
-        return .copy
+        return operation(for: sender)
+    }
+
+    /// Only advertise "droppable" for payloads we can actually accept, so the
+    /// cursor affordance matches `performDragOperation`.
+    private func operation(for sender: NSDraggingInfo) -> NSDragOperation {
+        Self.items(from: sender.draggingPasteboard).isEmpty ? [] : .copy
     }
 
     override func draggingExited(_: NSDraggingInfo?) {
