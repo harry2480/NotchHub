@@ -47,6 +47,46 @@ struct CalendarScheduleTests {
         )
         #expect(schedule.next == nil)
         #expect(schedule.today.isEmpty)
+        #expect(schedule.upcoming.isEmpty)
+        #expect(schedule.isEmpty)
+    }
+
+    @Test
+    func nextSurfacesLaterDayEventWhenNothingToday() {
+        // Regression: with no events left today, "Next" must still be the next
+        // upcoming event on a later day (and land in `upcoming`, not `today`).
+        let startOfDay = calendar.startOfDay(for: now)
+        let tomorrow = CalendarEvent(
+            id: "tomorrow",
+            title: "Tomorrow",
+            start: startOfDay.addingTimeInterval(90000), // ~25h ahead
+            end: startOfDay.addingTimeInterval(93600),
+            isAllDay: false,
+            calendarTitle: nil
+        )
+        let schedule = CalendarSchedule.from(events: [tomorrow], now: now, calendar: calendar)
+        #expect(schedule.next?.id == "tomorrow")
+        #expect(schedule.today.isEmpty)
+        #expect(schedule.upcoming.map(\.id) == ["tomorrow"])
+        #expect(!schedule.isEmpty)
+    }
+
+    @Test
+    func upcomingExcludesTodayEvents() {
+        let soon = event("soon", startOffset: 1800)
+        let startOfDay = calendar.startOfDay(for: now)
+        let tomorrow = CalendarEvent(
+            id: "tomorrow",
+            title: "Tomorrow",
+            start: startOfDay.addingTimeInterval(90000),
+            end: startOfDay.addingTimeInterval(93600),
+            isAllDay: false,
+            calendarTitle: nil
+        )
+        let schedule = CalendarSchedule.from(events: [tomorrow, soon], now: now, calendar: calendar)
+        #expect(schedule.today.map(\.id) == ["soon"])
+        #expect(schedule.upcoming.map(\.id) == ["tomorrow"])
+        #expect(schedule.next?.id == "soon")
     }
 
     @Test
@@ -91,5 +131,25 @@ struct CalendarServiceTests {
         let provider = StubCalendarProvider(events: [upcoming])
         let service = CalendarService(provider: provider, workspace: StubWorkspaceOpener(), now: { now })
         #expect(try service.schedule().next?.title == "Standup")
+    }
+
+    @Test
+    func scheduleFetchesBeyondToday() throws {
+        // The provider filters by the requested window; an event three days out
+        // must be returned, proving the fetch horizon is more than one day.
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let inThreeDays = CalendarEvent(
+            id: "future",
+            title: "Future",
+            start: now.addingTimeInterval(3 * 86400),
+            end: now.addingTimeInterval(3 * 86400 + 3600),
+            isAllDay: false,
+            calendarTitle: nil
+        )
+        let provider = StubCalendarProvider(events: [inThreeDays])
+        let service = CalendarService(provider: provider, workspace: StubWorkspaceOpener(), now: { now })
+        let schedule = try service.schedule()
+        #expect(schedule.next?.id == "future")
+        #expect(schedule.upcoming.map(\.id) == ["future"])
     }
 }
