@@ -25,13 +25,17 @@ final class CalendarService {
         await provider.requestAccessIfNeeded()
     }
 
+    /// How many days ahead to fetch so "Next" / "Upcoming" can surface events on
+    /// later days, not only today (要件定義.md §17.1).
+    private static let horizonDays = 7
+
     func schedule() throws -> CalendarSchedule {
         let current = now()
         let startOfDay = calendar.startOfDay(for: current)
-        guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else {
+        guard let horizonEnd = calendar.date(byAdding: .day, value: Self.horizonDays, to: startOfDay) else {
             return .empty
         }
-        let events = try provider.events(from: startOfDay, to: endOfDay)
+        let events = try provider.events(from: startOfDay, to: horizonEnd)
         return CalendarSchedule.from(events: events, now: current, calendar: calendar)
     }
 

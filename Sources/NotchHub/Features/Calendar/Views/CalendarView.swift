@@ -9,7 +9,7 @@ struct CalendarView: View {
         Group {
             if viewModel.accessDenied {
                 message("Calendar access not granted", systemImage: "calendar.badge.exclamationmark")
-            } else if viewModel.schedule.today.isEmpty {
+            } else if viewModel.schedule.isEmpty {
                 message("No upcoming events", systemImage: "calendar")
             } else {
                 content
@@ -23,18 +23,31 @@ struct CalendarView: View {
             VStack(alignment: .leading, spacing: 12) {
                 if let next = viewModel.schedule.next {
                     section(title: "Next") {
-                        eventRow(next, emphasized: true)
+                        eventRow(next, emphasized: true, showsDate: !isToday(next.start))
                     }
                 }
-                section(title: "Today") {
-                    ForEach(viewModel.schedule.today) { event in
-                        eventRow(event, emphasized: false)
+                if !viewModel.schedule.today.isEmpty {
+                    section(title: "Today") {
+                        ForEach(viewModel.schedule.today) { event in
+                            eventRow(event, emphasized: false, showsDate: false)
+                        }
+                    }
+                }
+                if !viewModel.schedule.upcoming.isEmpty {
+                    section(title: "Upcoming") {
+                        ForEach(viewModel.schedule.upcoming) { event in
+                            eventRow(event, emphasized: false, showsDate: true)
+                        }
                     }
                 }
             }
             .padding(NotchStyle.contentPadding)
         }
         .onTapGesture { viewModel.openCalendarApp() }
+    }
+
+    private func isToday(_ date: Date) -> Bool {
+        Calendar.current.isDateInToday(date)
     }
 
     private func section(title: String, @ViewBuilder _ rows: () -> some View) -> some View {
@@ -46,17 +59,27 @@ struct CalendarView: View {
         }
     }
 
-    private func eventRow(_ event: CalendarEvent, emphasized: Bool) -> some View {
+    private func eventRow(_ event: CalendarEvent, emphasized: Bool, showsDate: Bool) -> some View {
         HStack(spacing: 8) {
-            Text(event.isAllDay ? "All day" : Self.timeFormatter.string(from: event.start))
+            Text(timeLabel(for: event, showsDate: showsDate))
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .frame(width: 64, alignment: .leading)
+                .frame(width: showsDate ? 96 : 64, alignment: .leading)
             Text(event.title)
                 .font(emphasized ? .headline : .callout)
                 .lineLimit(1)
             Spacer(minLength: 0)
         }
+    }
+
+    /// Time for today's rows; date + time for later-day rows so they aren't
+    /// ambiguous.
+    private func timeLabel(for event: CalendarEvent, showsDate: Bool) -> String {
+        if event.isAllDay {
+            return showsDate ? Self.dateFormatter.string(from: event.start) : "All day"
+        }
+        let formatter = showsDate ? Self.dateTimeFormatter : Self.timeFormatter
+        return formatter.string(from: event.start)
     }
 
     private func message(_ text: String, systemImage: String) -> some View {
@@ -75,6 +98,20 @@ struct CalendarView: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         formatter.dateStyle = .none
+        return formatter
+    }()
+
+    private static let dateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .short
+        return formatter
+    }()
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .none
+        formatter.dateStyle = .short
         return formatter
     }()
 }
