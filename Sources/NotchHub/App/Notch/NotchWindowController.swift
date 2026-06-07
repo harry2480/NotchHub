@@ -1,4 +1,5 @@
 import AppKit
+import QuartzCore
 import SwiftUI
 
 /// Owns the notch `NSPanel` and keeps it in sync with the ``NotchViewModel``
@@ -21,6 +22,9 @@ final class NotchWindowController {
 
     private var outsideClickMonitor: Any?
     private var keyMonitor: Any?
+    /// The first frame application (initial show) must not animate; only later
+    /// mode/screen changes animate.
+    private var didApplyInitialFrame = false
 
     init(
         scene: NotchScene,
@@ -71,10 +75,29 @@ final class NotchWindowController {
     private func observeAndApplyFrame() {
         withObservationTracking {
             let mode = viewModel.mode
-            panel.setFrame(NotchGeometry.frame(for: mode, on: viewModel.currentScreen), display: true, animate: false)
+            let frame = NotchGeometry.frame(for: mode, on: viewModel.currentScreen)
+            applyFrame(frame, animated: didApplyInitialFrame)
+            didApplyInitialFrame = true
             applyActivation(for: mode)
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeAndApplyFrame() }
+        }
+    }
+
+    /// Resizes the panel. Mode changes animate the window frame with the same
+    /// duration/curve as the SwiftUI content (`NotchStyle.modeTransition`) so the
+    /// hardware-notch panel grows/shrinks in lockstep with its contents instead
+    /// of snapping.
+    private func applyFrame(_ frame: NSRect, animated: Bool) {
+        guard animated, frame != panel.frame else {
+            panel.setFrame(frame, display: true, animate: false)
+            return
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = NotchStyle.modeTransitionDuration
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            context.allowsImplicitAnimation = true
+            panel.animator().setFrame(frame, display: true)
         }
     }
 

@@ -26,8 +26,8 @@ struct DropZoneView: View {
             RoundedRectangle(cornerRadius: NotchStyle.zoneCornerRadius, style: .continuous)
                 .strokeBorder(Color.accentColor, lineWidth: isHighlighted ? 2 : 0)
         )
-        .scaleEffect(isHighlighted ? 1.03 : 1)
-        .animation(.easeOut(duration: 0.12), value: isHighlighted)
+        .scaleEffect(isHighlighted ? 1.04 : 1)
+        .animation(NotchStyle.zoneHighlight, value: isHighlighted)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(zone.title), \(zone.subtitle)")
     }
