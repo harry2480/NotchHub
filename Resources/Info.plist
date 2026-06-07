@@ -27,5 +27,13 @@
     <!-- Menu-bar / notch agent: no Dock icon -->
     <key>LSUIElement</key>
     <true/>
+    <!-- Required for the feature to work at all: without these usage strings
+         macOS silently denies the request and shows NO permission prompt. -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>NotchHub controls Apple Music / Spotify playback shown in the notch.</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>NotchHub shows your upcoming events in the notch.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>NotchHub shows your upcoming events in the notch.</string>
 </dict>
 </plist>

@@ -1,10 +1,20 @@
-import Foundation
+import AppKit
 
 /// Production ``MediaControlling`` driving Apple Music / Spotify via AppleScript
 /// (要件定義.md §18). Prefers whichever app is currently playing.
+///
+/// AppleScript is only run when the target app is actually running (checked via
+/// `NSWorkspace.runningApplications`, which never prompts). Scripts address the
+/// app by bundle id (`tell application id …`) so macOS never shows a "Choose
+/// Application" locate dialog — a repeating one of those was the bug behind the
+/// undismissable Choose/Cancel prompt.
 final class AppleScriptMediaController: MediaControlling {
+    private enum Player {
+        static let music = "com.apple.Music"
+        static let spotify = "com.spotify.client"
+    }
+
     func nowPlaying() -> NowPlaying? {
-        // Read each source once to avoid redundant AppleScript IPC.
         let music = read(source: .appleMusic)
         let spotify = read(source: .spotify)
         if let music, music.isPlaying { return music }
@@ -24,29 +34,33 @@ final class AppleScriptMediaController: MediaControlling {
         run(command: "previous track", on: activeSource())
     }
 
-    // MARK: - AppleScript
-
-    private func activeSource() -> NowPlaying.Source {
-        nowPlaying()?.source ?? .appleMusic
+    func openDefaultPlayer() {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: Player.music) {
+            NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+        }
     }
 
-    private func appName(_ source: NowPlaying.Source) -> String {
-        source == .spotify ? "Spotify" : "Music"
+    // MARK: - AppleScript
+
+    private func bundleID(_ source: NowPlaying.Source) -> String {
+        source == .spotify ? Player.spotify : Player.music
+    }
+
+    /// Whether the player is running — checked without AppleScript so no dialog
+    /// or Automation prompt is triggered when it isn't.
+    private func isRunning(_ source: NowPlaying.Source) -> Bool {
+        let id = bundleID(source)
+        return NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == id }
     }
 
     private func read(source: NowPlaying.Source) -> NowPlaying? {
-        let app = appName(source)
+        guard isRunning(source) else { return nil }
         let script = """
-        if application "\(app)" is running then
-            tell application "\(app)"
-                if player state is playing or player state is paused then
-                    set trackName to name of current track
-                    set artistName to artist of current track
-                    set playing to (player state is playing)
-                    return trackName & "\\n" & artistName & "\\n" & playing
-                end if
-            end tell
-        end if
+        tell application id "\(bundleID(source))"
+            if player state is playing or player state is paused then
+                return (name of current track) & "\\n" & (artist of current track) & "\\n" & (player state is playing)
+            end if
+        end tell
         return ""
         """
         guard let output = runScript(script), !output.isEmpty else { return nil }
@@ -62,7 +76,12 @@ final class AppleScriptMediaController: MediaControlling {
     }
 
     private func run(command: String, on source: NowPlaying.Source) {
-        _ = runScript("tell application \"\(appName(source))\" to \(command)")
+        guard isRunning(source) else { return }
+        _ = runScript("tell application id \"\(bundleID(source))\" to \(command)")
+    }
+
+    private func activeSource() -> NowPlaying.Source {
+        nowPlaying()?.source ?? .appleMusic
     }
 
     @discardableResult

@@ -15,3 +15,6 @@ DerivedData/
 # Node (legacy webapp starter)
 node_modules/
 .next/
+
+# Packaged app bundle
+build/

@@ -5,4 +5,7 @@ protocol MediaControlling {
     func playPause()
     func next()
     func previous()
+    /// Launches the default supported player (Apple Music) so the user can start
+    /// playback when nothing is playing.
+    func openDefaultPlayer()
 }

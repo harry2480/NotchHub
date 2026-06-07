@@ -103,8 +103,6 @@ final class AppComposition {
 
         return NotchWindowController(
             scene: scene,
-            screenProvider: screenProvider,
-            dragMonitor: AppKitGlobalDragMonitor(),
             screenshotMonitor: DirectoryScreenshotMonitor(),
             screenshotImporter: screenshotImporter
         )

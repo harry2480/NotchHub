@@ -23,4 +23,8 @@ final class MediaService {
     func previous() {
         controller.previous()
     }
+
+    func openDefaultPlayer() {
+        controller.openDefaultPlayer()
+    }
 }

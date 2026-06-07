@@ -27,7 +27,17 @@ final class AppKitScreenProvider: ScreenProviding {
             id: id,
             frame: screen.frame,
             hasNotch: hasNotch,
-            notchSize: hasNotch ? CGSize(width: NotchLayout.collapsed.width, height: notchHeight) : nil
+            notchSize: hasNotch ? CGSize(width: notchWidth(of: screen), height: notchHeight) : nil
         )
+    }
+
+    /// The real notch width: the screen width minus the usable menu-bar areas to
+    /// its left and right (`auxiliaryTopLeftArea` / `auxiliaryTopRightArea`).
+    private static func notchWidth(of screen: NSScreen) -> CGFloat {
+        if let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
+            let width = screen.frame.width - left.width - right.width
+            if width > 0 { return width }
+        }
+        return NotchLayout.collapsed.width
     }
 }
