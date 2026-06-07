@@ -27,9 +27,5 @@
     <!-- Menu-bar / notch agent: no Dock icon -->
     <key>LSUIElement</key>
     <true/>
-    <key>NSCalendarsUsageDescription</key>
-    <string>NotchHub displays your upcoming events in the notch.</string>
-    <key>NSAppleEventsUsageDescription</key>
-    <string>NotchHub controls Apple Music and Spotify playback.</string>
 </dict>
 </plist>

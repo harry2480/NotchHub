@@ -9,7 +9,7 @@ NotchHub は **Mac のノッチを活用した共有・一時保管ハブ**（Sw
 ### レイヤー境界を越えない（最重要）
 依存方向は **`View → ViewModel → Service → Repository/Platform（protocol）`**、Model（`Core/Models`）は最内層で外部依存なし（[`docs/アーキテクチャ.md`](docs/アーキテクチャ.md)）。
 
-- **View / ViewModel から SQLite・OS API を直接呼んではいけない。** 必ず Service 経由でアクセスする
+- **View / ViewModel から SQLite・OS API を直接呼ばず、必ず Service 経由でアクセスする**
 - **Service は Repository / Platform の protocol にのみ依存する。** 具体実装を直接 import しない
 - **DI の組み立ては `App/Composition/`（Composition Root）でのみ行う**
 

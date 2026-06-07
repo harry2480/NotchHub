@@ -177,11 +177,10 @@ final class SQLiteDatabase {
             }
             return .null
         case SQLITE_BLOB:
-            if let bytes = sqlite3_column_blob(statement, index) {
-                let count = Int(sqlite3_column_bytes(statement, index))
-                return .blob(Data(bytes: bytes, count: count))
-            }
-            return .blob(Data())
+            let count = Int(sqlite3_column_bytes(statement, index))
+            guard count > 0 else { return .blob(Data()) }
+            guard let bytes = sqlite3_column_blob(statement, index) else { return .null }
+            return .blob(Data(bytes: bytes, count: count))
         default:
             return .null
         }
