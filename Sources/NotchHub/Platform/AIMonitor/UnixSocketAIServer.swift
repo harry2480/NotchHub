@@ -109,6 +109,9 @@ final class UnixSocketAIServer: AISocketServing {
             close(clientFD)
             self?.buffers[clientFD] = nil
             self?.clientSources[clientFD] = nil
+            // Drop any pending request → fd mappings for this client so a later
+            // respond() can't write to a closed (or OS-reused) descriptor.
+            self?.clientByRequestId = self?.clientByRequestId.filter { $0.value != clientFD } ?? [:]
         }
         clientSources[clientFD] = source
         source.resume()
