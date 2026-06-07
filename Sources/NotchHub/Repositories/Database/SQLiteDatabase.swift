@@ -131,8 +131,16 @@ final class SQLiteDatabase {
             sqlite3_finalize(statement)
             throw DatabaseError.prepare(code: result, message: errorMessage, sql: sql)
         }
-        for (offset, value) in parameters.enumerated() {
-            try bind(value, to: statement, at: Int32(offset + 1))
+        do {
+            for (offset, value) in parameters.enumerated() {
+                try bind(value, to: statement, at: Int32(offset + 1))
+            }
+        } catch {
+            // Finalize the already-prepared statement so a binding failure does
+            // not leak it (callers only register their `defer` finalize once
+            // `prepare` returns successfully).
+            sqlite3_finalize(statement)
+            throw error
         }
         return statement
     }

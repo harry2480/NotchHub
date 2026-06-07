@@ -76,6 +76,17 @@ struct SQLiteDatabaseTests {
     }
 
     @Test
+    func bindingMoreParametersThanPlaceholdersThrows() throws {
+        let database = try SQLiteDatabase.inMemory()
+        // "SELECT 1" has no bind placeholders, so binding a parameter at index 1
+        // fails (SQLITE_RANGE). The prepared statement must be finalized rather
+        // than leaked, and the error surfaces to the caller.
+        #expect(throws: SQLiteDatabase.DatabaseError.self) {
+            try database.query("SELECT 1;", [.text("orphan")])
+        }
+    }
+
+    @Test
     func userVersionRoundTrips() throws {
         let database = try SQLiteDatabase.inMemory()
         #expect(try database.userVersion() == 0)
