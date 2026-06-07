@@ -39,15 +39,15 @@ final class DirectoryScreenshotMonitor: ScreenshotMonitoring {
             Log.shelf.error("Screenshot monitor could not open directory")
             return
         }
+        let openedFD = descriptor
         let newSource = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: descriptor,
+            fileDescriptor: openedFD,
             eventMask: .write,
             queue: .global(qos: .utility)
         )
         newSource.setEventHandler { [weak self] in self?.scan() }
-        newSource.setCancelHandler { [weak self] in
-            if let descriptor = self?.descriptor, descriptor >= 0 { close(descriptor) }
-            self?.descriptor = -1
+        newSource.setCancelHandler {
+            close(openedFD)
         }
         source = newSource
         newSource.resume()
@@ -56,6 +56,7 @@ final class DirectoryScreenshotMonitor: ScreenshotMonitoring {
     func stop() {
         source?.cancel()
         source = nil
+        descriptor = -1
     }
 
     deinit {

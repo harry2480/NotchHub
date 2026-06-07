@@ -16,8 +16,8 @@ struct CalendarViewModelTests {
             calendarTitle: nil
         )
         let provider = StubCalendarProvider(accessGranted: true, events: [event])
-        let service = CalendarService(provider: provider, now: { now })
-        let viewModel = CalendarViewModel(service: service, workspace: StubWorkspaceOpener())
+        let service = CalendarService(provider: provider, workspace: StubWorkspaceOpener(), now: { now })
+        let viewModel = CalendarViewModel(service: service)
 
         await viewModel.load()
         #expect(!viewModel.accessDenied)
@@ -27,8 +27,8 @@ struct CalendarViewModelTests {
     @Test
     func loadSetsAccessDeniedWhenNotGranted() async {
         let provider = StubCalendarProvider(accessGranted: false)
-        let service = CalendarService(provider: provider)
-        let viewModel = CalendarViewModel(service: service, workspace: StubWorkspaceOpener())
+        let service = CalendarService(provider: provider, workspace: StubWorkspaceOpener())
+        let viewModel = CalendarViewModel(service: service)
 
         await viewModel.load()
         #expect(viewModel.accessDenied)
@@ -38,8 +38,7 @@ struct CalendarViewModelTests {
     func openCalendarAppDelegatesToWorkspace() {
         let workspace = StubWorkspaceOpener()
         let viewModel = CalendarViewModel(
-            service: CalendarService(provider: StubCalendarProvider()),
-            workspace: workspace
+            service: CalendarService(provider: StubCalendarProvider(), workspace: workspace)
         )
         viewModel.openCalendarApp()
         #expect(workspace.opened.first?.scheme == "ical")

@@ -42,13 +42,38 @@ final class ShelfService {
     /// Adds a new (unpinned) item, evicting the oldest unpinned item first if
     /// the regular limit is reached (要件定義.md §8.10 通常: 最古の未ピン留めから削除).
     func add(_ item: ShelfItem) throws {
+        _ = try add([item])
+    }
+
+    /// Adds a drop as one atomic repository mutation. Returns the IDs that remain
+    /// after enforcing the regular-item limit.
+    @discardableResult
+    func add(_ items: [ShelfItem]) throws -> [ShelfItem.ID] {
+        guard !items.isEmpty else { return [] }
         let existing = try repository.fetchAll()
-        let unpinned = existing.filter { !$0.isPinned }
-        if unpinned.count >= ShelfLimits.regular, let oldest = unpinned.min(by: { $0.createdAt < $1.createdAt }) {
-            try repository.delete(id: oldest.id)
-            Log.shelf.info("Evicted oldest unpinned shelf item to respect the limit")
+        var desired = existing
+        for item in items {
+            desired.removeAll { $0.id == item.id }
+            desired.append(item)
         }
-        try repository.insert(item)
+
+        let unpinned = desired.filter { !$0.isPinned }
+        let overflow = max(0, unpinned.count - ShelfLimits.regular)
+        let evictedIDs = Set(
+            unpinned
+                .sorted { $0.createdAt < $1.createdAt }
+                .prefix(overflow)
+                .map(\.id)
+        )
+        let insertions = items.filter { !evictedIDs.contains($0.id) }
+        let existingIDs = Set(existing.map(\.id))
+        let deletions = evictedIDs.filter { existingIDs.contains($0) }
+
+        try repository.apply(insertions: insertions, deletions: Array(deletions))
+        if !evictedIDs.isEmpty {
+            Log.shelf.info("Evicted \(evictedIDs.count) oldest unpinned Shelf item(s) to respect the limit")
+        }
+        return insertions.map(\.id)
     }
 
     /// Pins/unpins an item. Pinning is refused (without error) when the pinned
@@ -121,9 +146,19 @@ final class ShelfService {
         var removed: [ShelfItem.ID] = []
         for item in try repository.fetchAll() where item.kind.isFileBacked {
             guard let bookmark = item.bookmark else { continue }
-            if (try? bookmarkResolver.resolve(bookmark)) == nil {
+            do {
+                _ = try bookmarkResolver.resolve(bookmark)
+            } catch BookmarkError.fileMissing {
+                // Only the original-file-deleted case removes the item; transient
+                // / permission / format errors keep it (avoid false deletion).
                 try repository.delete(id: item.id)
                 removed.append(item.id)
+            } catch {
+                let details = error.localizedDescription
+                Log.shelf
+                    .error(
+                        "Skipping prune for \(item.name, privacy: .public): \(details, privacy: .public)"
+                    )
             }
         }
         return removed

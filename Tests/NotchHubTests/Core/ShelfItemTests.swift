@@ -27,6 +27,13 @@ struct ShelfItemTests {
     }
 
     @Test
+    func urlKindRejectsMalformedWebURL() {
+        #expect(throws: ShelfItem.ValidationError.invalidURL) {
+            try ShelfItem(kind: .url, name: "site", createdAt: date, urlString: "https://")
+        }
+    }
+
+    @Test
     func emptyNameIsRejected() {
         #expect(throws: ShelfItem.ValidationError.emptyName) {
             try ShelfItem(kind: .text, name: "  ", createdAt: date, body: "x")
@@ -79,5 +86,11 @@ struct ShelfLifespanTests {
         let atExpiry = created.addingTimeInterval(86400)
         #expect(!lifespan.isExpired(createdAt: created, now: justBefore))
         #expect(lifespan.isExpired(createdAt: created, now: atExpiry))
+    }
+
+    @Test
+    func nonPositiveDaysNeverExpire() {
+        #expect(ShelfLifespan.days(0).expiryDate(from: created) == nil)
+        #expect(ShelfLifespan.days(-1).expiryDate(from: created) == nil)
     }
 }

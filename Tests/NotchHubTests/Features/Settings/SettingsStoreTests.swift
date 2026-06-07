@@ -4,18 +4,37 @@ import Testing
 @MainActor
 struct SettingsStoreTests {
     @Test
-    func loadsInitialSettingsFromRepository() {
+    func loadsInitialSettingsFromRepository() throws {
         var initial = AppSettings.default
         initial.screenshotAutoImport = false
-        let store = SettingsStore(repository: StubSettingsRepository(settings: initial))
+        let store = try SettingsStore(
+            service: SettingsService(repository: StubSettingsRepository(settings: initial))
+        )
         #expect(store.settings.screenshotAutoImport == false)
     }
 
     @Test
-    func mutatingSettingsPersists() {
+    func mutatingSettingsPersists() throws {
         let repository = StubSettingsRepository()
-        let store = SettingsStore(repository: repository)
+        let store = try SettingsStore(service: SettingsService(repository: repository))
         store.settings.initialTab = .media
         #expect(repository.stored.initialTab == .media)
+    }
+
+    @Test
+    func loadFailureIsNotSilentlyReplacedWithDefaults() {
+        struct LoadFailure: Error {}
+
+        final class FailingRepository: SettingsRepository {
+            func load() throws -> AppSettings {
+                throw LoadFailure()
+            }
+
+            func save(_: AppSettings) throws {}
+        }
+
+        #expect(throws: LoadFailure.self) {
+            try SettingsStore(service: SettingsService(repository: FailingRepository()))
+        }
     }
 }

@@ -49,9 +49,30 @@ final class UnixSocketAIServer: AISocketServing {
             let payload: [String: String] = ["requestId": requestId, "decision": decision.rawValue]
             if var data = try? JSONSerialization.data(withJSONObject: payload) {
                 data.append(0x0A)
-                data.withUnsafeBytes { _ = write(fd, $0.baseAddress, $0.count) }
+                if !writeAll(data, to: fd) {
+                    Log.app.error("AI socket: failed to send approval response")
+                }
             }
             clientByRequestId[requestId] = nil
+        }
+    }
+
+    /// Writes the entire buffer, retrying on partial writes and `EINTR`.
+    private func writeAll(_ data: Data, to fd: Int32) -> Bool {
+        data.withUnsafeBytes { raw -> Bool in
+            guard let base = raw.baseAddress else { return true }
+            var offset = 0
+            while offset < raw.count {
+                let written = write(fd, base.advanced(by: offset), raw.count - offset)
+                if written > 0 {
+                    offset += written
+                } else if written < 0, errno == EINTR {
+                    continue
+                } else {
+                    return false
+                }
+            }
+            return true
         }
     }
 
@@ -102,6 +123,19 @@ final class UnixSocketAIServer: AISocketServing {
     private func acceptClient() {
         let clientFD = accept(listenFD, nil, nil)
         guard clientFD >= 0 else { return }
+        // Avoid SIGPIPE killing the process if the peer disconnects mid-write.
+        var noSigPipe: Int32 = 1
+        guard setsockopt(
+            clientFD,
+            SOL_SOCKET,
+            SO_NOSIGPIPE,
+            &noSigPipe,
+            socklen_t(MemoryLayout<Int32>.size)
+        ) == 0 else {
+            Log.app.error("AI socket: failed to configure client")
+            close(clientFD)
+            return
+        }
         buffers[clientFD] = Data()
         let source = DispatchSource.makeReadSource(fileDescriptor: clientFD, queue: queue)
         source.setEventHandler { [weak self] in self?.readAvailable(clientFD) }

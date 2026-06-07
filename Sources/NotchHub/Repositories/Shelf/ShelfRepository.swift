@@ -8,6 +8,7 @@ protocol ShelfRepository {
     func fetchAll() throws -> [ShelfItem]
     func search(query: String) throws -> [ShelfItem]
     func insert(_ item: ShelfItem) throws
+    func apply(insertions: [ShelfItem], deletions: [ShelfItem.ID]) throws
     func delete(id: ShelfItem.ID) throws
     func deleteAll() throws
     func setPinned(id: ShelfItem.ID, pinned: Bool) throws

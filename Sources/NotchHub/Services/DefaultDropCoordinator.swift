@@ -52,13 +52,13 @@ final class DefaultDropCoordinator: DropCoordinating {
     private func addToShelf(_ dropped: [DroppedItem]) -> ToastMessage {
         do {
             let items = try itemFactory.makeItems(from: dropped)
-            for item in items {
-                try shelfService.add(item)
-            }
-            lastInsertedIDs = items.map(\.id)
-            let count = items.count
-            return ToastMessage(text: "Added \(count) to Shelf", isUndoable: true)
+            lastInsertedIDs = try shelfService.add(items)
+            return ToastMessage(
+                text: "Added \(lastInsertedIDs.count) to Shelf",
+                isUndoable: !lastInsertedIDs.isEmpty
+            )
         } catch {
+            lastInsertedIDs = []
             Log.shelf.error("Failed to add to Shelf: \(error.localizedDescription, privacy: .public)")
             return ToastMessage(text: "Couldn't add to Shelf")
         }

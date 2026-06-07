@@ -18,11 +18,9 @@ final class AIMonitorViewModel {
     private(set) var groups: [AISessionGroup] = []
 
     private let service: AIMonitorService
-    private let workspace: WorkspaceOpening
 
-    init(service: AIMonitorService, workspace: WorkspaceOpening) {
+    init(service: AIMonitorService) {
         self.service = service
-        self.workspace = workspace
         service.onSessionsChanged = { [weak self] in self?.refresh() }
         refresh()
     }
@@ -46,7 +44,6 @@ final class AIMonitorViewModel {
     /// Reveals the session's working directory (要件定義.md §13.2 Open Terminal —
     /// MVP reveals the project folder).
     func reveal(_ session: AISession) {
-        guard let cwd = session.cwd, !cwd.isEmpty else { return }
-        workspace.revealInFinder(URL(fileURLWithPath: cwd))
+        service.reveal(session)
     }
 }

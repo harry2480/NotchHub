@@ -27,23 +27,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let composition = AppComposition()
         do {
             try composition.bootstrap()
+            let notchController = try composition.makeNotchController()
+            notchController.start()
+            self.notchController = notchController
+
+            let settingsWindowController = try composition.makeSettingsWindowController()
+            self.settingsWindowController = settingsWindowController
+
+            menuBarController = MenuBarController(
+                loginItemManager: composition.loginItemManager,
+                onOpenSettings: { [weak settingsWindowController] in settingsWindowController?.show() }
+            )
+
+            self.composition = composition
         } catch {
-            Log.app.error("Bootstrap failed: \(error.localizedDescription, privacy: .public)")
+            Log.app.fault("Startup failed: \(String(reflecting: error), privacy: .public)")
+            NSApp.terminate(nil)
+            return
         }
-
-        let notchController = composition.makeNotchController()
-        notchController.start()
-        self.notchController = notchController
-
-        let settingsWindowController = composition.makeSettingsWindowController()
-        self.settingsWindowController = settingsWindowController
-
-        menuBarController = MenuBarController(
-            loginItemManager: composition.loginItemManager,
-            onOpenSettings: { [weak settingsWindowController] in settingsWindowController?.show() }
-        )
-
-        self.composition = composition
     }
 
     func applicationWillTerminate(_: Notification) {

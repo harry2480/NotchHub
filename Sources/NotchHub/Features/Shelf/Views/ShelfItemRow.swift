@@ -9,22 +9,24 @@ struct ShelfItemRow: View {
     let onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: symbolName)
-                .frame(width: 18)
-                .foregroundStyle(.secondary)
-            Text(item.name)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer(minLength: 8)
-            if item.isPinned {
-                Image(systemName: "pin.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
+        Button(action: onOpen) {
+            HStack(spacing: 8) {
+                Image(systemName: symbolName)
+                    .frame(width: 18)
+                    .foregroundStyle(.secondary)
+                Text(item.name)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 8)
+                if item.isPinned {
+                    Image(systemName: "pin.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
             }
+            .contentShape(Rectangle())
         }
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onOpen)
+        .buttonStyle(.plain)
         .contextMenu {
             Button("Open", action: onOpen)
             if item.kind.isFileBacked {

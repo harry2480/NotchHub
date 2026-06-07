@@ -7,6 +7,15 @@ struct ResolvedBookmark: Equatable {
     let isStale: Bool
 }
 
+/// Errors thrown while resolving a bookmark. `fileMissing` specifically means
+/// the original file no longer exists (used by the Shelf to auto-remove dangling
+/// items); other resolution failures throw different errors and must NOT be
+/// treated as "deleted".
+enum BookmarkError: Error, Equatable {
+    case fileMissing
+    case invalidData
+}
+
 /// Creates and resolves security-scoped bookmarks, hiding the file-system /
 /// sandbox APIs behind a protocol (AGENTS.md 永続化規約・リポジトリ層設計規約.md).
 /// Resolution throws when the original file no longer exists, which the Shelf

@@ -9,7 +9,9 @@ struct ExpandedNotchView: View {
 
     init(scene: NotchScene) {
         self.scene = scene
-        _selectedTab = State(initialValue: scene.settings.settings.initialTab)
+        let settings = scene.settings.settings
+        let initial = Self.isVisible(settings.initialTab, settings: settings) ? settings.initialTab : .shelf
+        _selectedTab = State(initialValue: initial)
     }
 
     var body: some View {
@@ -21,17 +23,24 @@ struct ExpandedNotchView: View {
         }
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: NotchStyle.cornerRadius, style: .continuous))
+        .onChange(of: visibleTabs) { _, tabs in
+            if !tabs.contains(selectedTab) {
+                selectedTab = tabs.first ?? .shelf
+            }
+        }
     }
 
     private var visibleTabs: [NotchTab] {
         let settings = scene.settings.settings
-        return NotchTab.allCases.filter { tab in
-            switch tab {
-            case .shelf: true
-            case .calendar: settings.showCalendar
-            case .media: settings.showMedia
-            case .ai: settings.showAI
-            }
+        return NotchTab.allCases.filter { Self.isVisible($0, settings: settings) }
+    }
+
+    private static func isVisible(_ tab: NotchTab, settings: AppSettings) -> Bool {
+        switch tab {
+        case .shelf: true
+        case .calendar: settings.showCalendar
+        case .media: settings.showMedia
+        case .ai: settings.showAI
         }
     }
 

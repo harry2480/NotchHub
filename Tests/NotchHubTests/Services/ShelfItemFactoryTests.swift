@@ -55,4 +55,9 @@ struct ShelfItemFactoryTests {
     func emptyTextTitleFallsBack() {
         #expect(ShelfItemFactory.title(forText: "\n\n") == "Untitled")
     }
+
+    @Test
+    func textTitleUsesFirstNonEmptyTrimmedLine() {
+        #expect(ShelfItemFactory.title(forText: "   \n  second line  ") == "second line")
+    }
 }

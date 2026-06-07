@@ -53,6 +53,17 @@ final class SQLiteShelfRepository: ShelfRepository {
         )
     }
 
+    func apply(insertions: [ShelfItem], deletions: [ShelfItem.ID]) throws {
+        try database.transaction {
+            for id in deletions {
+                try delete(id: id)
+            }
+            for item in insertions {
+                try insert(item)
+            }
+        }
+    }
+
     func delete(id: ShelfItem.ID) throws {
         try database.run("DELETE FROM shelf_items WHERE id = ?;", [.text(id.uuidString)])
     }

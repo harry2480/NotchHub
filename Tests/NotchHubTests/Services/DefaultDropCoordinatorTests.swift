@@ -44,6 +44,19 @@ struct DefaultDropCoordinatorTests {
     }
 
     @Test
+    func shelfDropFailureLeavesNoPartialItems() throws {
+        let harness = makeHarness()
+        harness.shelfRepo.failApply = true
+
+        let toast = harness.coordinator.handle(
+            DropRequest(zone: .shelf, items: [.text("hello"), .text("world")])
+        )
+
+        #expect(!toast.isUndoable)
+        #expect(try harness.shelfRepo.fetchAll().isEmpty)
+    }
+
+    @Test
     func undoRemovesLastShelfDrop() throws {
         let harness = makeHarness()
         let request = DropRequest(zone: .shelf, items: [.text("hello")])

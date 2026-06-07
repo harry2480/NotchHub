@@ -11,9 +11,21 @@ struct ShelfServiceTests {
         let workspace: StubWorkspaceOpener
     }
 
+    private struct PermissionFailure: Error {}
+
+    private final class FailingResolver: BookmarkResolving {
+        func bookmark(for _: URL) throws -> Data {
+            Data("bookmark".utf8)
+        }
+
+        func resolve(_: Data) throws -> ResolvedBookmark {
+            throw PermissionFailure()
+        }
+    }
+
     private func makeHarness(
         items: [ShelfItem] = [],
-        resolver: StubBookmarkResolver = StubBookmarkResolver(),
+        resolver: BookmarkResolving = StubBookmarkResolver(),
         lifespan: ShelfLifespan = .forever,
         now: @escaping () -> Date = { Date(timeIntervalSince1970: 2_000_000) }
     ) -> Harness {
@@ -55,6 +67,19 @@ struct ShelfServiceTests {
         // 49 unpinned < limit, so nothing is evicted yet on this add.
         try harness.service.add(text("new1", at: 20000))
         #expect(try harness.repo.fetchAll().map(\.name).contains("item0"))
+    }
+
+    @Test
+    func addFailureKeepsExistingItems() throws {
+        let existing = try (0 ..< ShelfLimits.regular).map { try text("item\($0)", at: TimeInterval($0)) }
+        let harness = makeHarness(items: existing)
+        harness.repo.failApply = true
+
+        #expect(throws: StubShelfRepository.StubError.applyFailed) {
+            try harness.service.add(text("new", at: 10000))
+        }
+
+        #expect(try harness.repo.fetchAll().map(\.id) == existing.reversed().map(\.id))
     }
 
     @Test
@@ -108,6 +133,15 @@ struct ShelfServiceTests {
         let removed = try harness.service.pruneMissingFiles()
         #expect(removed == [missing.id])
         #expect(try harness.repo.fetchAll().map(\.name) == ["present.pdf"])
+    }
+
+    @Test
+    func pruneMissingFilesKeepsItemsOnNonMissingErrors() throws {
+        let item = try ShelfItem.file(name: "protected.pdf", bookmark: Data("bookmark".utf8), createdAt: epoch)
+        let harness = makeHarness(items: [item], resolver: FailingResolver())
+
+        #expect(try harness.service.pruneMissingFiles().isEmpty)
+        #expect(try harness.repo.fetchAll().map(\.id) == [item.id])
     }
 
     @Test

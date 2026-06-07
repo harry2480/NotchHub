@@ -69,6 +69,12 @@ enum AppMigrations {
                 );
                 """
             )
+        },
+        Migration(version: 2) { database in
+            // fetchAll() orders by date DESC; index it to avoid full scans.
+            try database.exec(
+                "CREATE INDEX IF NOT EXISTS idx_airdrop_history_date ON airdrop_history (date DESC);"
+            )
         }
     ]
 }

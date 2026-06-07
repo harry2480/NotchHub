@@ -4,10 +4,6 @@ import Foundation
 /// tokens mapped back to URLs; a URL can be marked "missing" to simulate the
 /// original file having been deleted (so resolution throws).
 final class StubBookmarkResolver: BookmarkResolving {
-    enum StubError: Error, Equatable {
-        case missing
-    }
-
     private var urlsByToken: [Data: URL] = [:]
     private var missing: Set<URL> = []
     private var counter = 0
@@ -20,8 +16,11 @@ final class StubBookmarkResolver: BookmarkResolving {
     }
 
     func resolve(_ data: Data) throws -> ResolvedBookmark {
-        guard let url = urlsByToken[data], !missing.contains(url) else {
-            throw StubError.missing
+        guard let url = urlsByToken[data] else {
+            throw BookmarkError.invalidData
+        }
+        guard !missing.contains(url) else {
+            throw BookmarkError.fileMissing
         }
         return ResolvedBookmark(url: url, isStale: false)
     }

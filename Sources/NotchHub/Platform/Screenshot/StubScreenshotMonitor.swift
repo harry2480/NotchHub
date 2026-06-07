@@ -14,6 +14,7 @@ final class StubScreenshotMonitor: ScreenshotMonitoring {
     }
 
     func emit(_ url: URL) {
+        guard isRunning else { return }
         onScreenshot?(url)
     }
 }

@@ -4,9 +4,12 @@ import Foundation
 /// (要件定義.md §18). Prefers whichever app is currently playing.
 final class AppleScriptMediaController: MediaControlling {
     func nowPlaying() -> NowPlaying? {
-        if let music = read(source: .appleMusic), music.isPlaying { return music }
-        if let spotify = read(source: .spotify), spotify.isPlaying { return spotify }
-        return read(source: .appleMusic) ?? read(source: .spotify)
+        // Read each source once to avoid redundant AppleScript IPC.
+        let music = read(source: .appleMusic)
+        let spotify = read(source: .spotify)
+        if let music, music.isPlaying { return music }
+        if let spotify, spotify.isPlaying { return spotify }
+        return music ?? spotify
     }
 
     func playPause() {

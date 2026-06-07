@@ -12,8 +12,12 @@ struct AIMonitorViewModelTests {
 
     private func makeHarness() -> Harness {
         let socket = StubAISocketServer()
-        let service = AIMonitorService(socket: socket, now: { Date(timeIntervalSince1970: 1_000_000) })
-        let viewModel = AIMonitorViewModel(service: service, workspace: StubWorkspaceOpener())
+        let service = AIMonitorService(
+            socket: socket,
+            workspace: StubWorkspaceOpener(),
+            now: { Date(timeIntervalSince1970: 1_000_000) }
+        )
+        let viewModel = AIMonitorViewModel(service: service)
         return Harness(viewModel: viewModel, service: service, socket: socket)
     }
 

@@ -40,7 +40,13 @@ final class CacheTempFileWriter: TempFileWriting {
     }
 
     private func ensureExtension(_ name: String, _ ext: String) -> String {
-        let base = name.isEmpty ? "Untitled" : name
+        // Sanitize to a bare filename so `../` or separators can't escape the
+        // temp folder (path-traversal hardening).
+        let leaf = (name as NSString).lastPathComponent
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: ":", with: "_")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let base = (leaf.isEmpty || leaf == "." || leaf == "..") ? "Untitled" : leaf
         return base.lowercased().hasSuffix(".\(ext)") ? base : "\(base).\(ext)"
     }
 }

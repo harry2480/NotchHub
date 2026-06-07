@@ -61,8 +61,11 @@ final class SQLiteSettingsRepository: SettingsRepository {
     }
 
     private func boolValue(_ raw: String?, _ fallback: Bool) -> Bool {
-        guard let raw else { return fallback }
-        return raw == "1"
+        switch raw {
+        case "1": true
+        case "0": false
+        default: fallback // nil or any corrupted/legacy value
+        }
     }
 
     private func boolString(_ value: Bool) -> String {

@@ -77,7 +77,19 @@ final class ShareService {
                 originalPath: item.originalPath,
                 outcome: outcome
             )
-            try? history.insert(record)
+            do {
+                try history.insert(record)
+            } catch {
+                let path = item.originalPath ?? "<generated>"
+                Log.shelf.error(
+                    """
+                    Failed to persist AirDrop history \
+                    name=\(item.name, privacy: .public) \
+                    path=\(path, privacy: .public): \
+                    \(String(reflecting: error), privacy: .public)
+                    """
+                )
+            }
         }
     }
 }

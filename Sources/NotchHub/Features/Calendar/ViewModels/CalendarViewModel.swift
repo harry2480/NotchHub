@@ -9,11 +9,9 @@ final class CalendarViewModel {
     private(set) var accessDenied = false
 
     private let service: CalendarService
-    private let workspace: WorkspaceOpening
 
-    init(service: CalendarService, workspace: WorkspaceOpening) {
+    init(service: CalendarService) {
         self.service = service
-        self.workspace = workspace
     }
 
     func load() async {
@@ -28,8 +26,6 @@ final class CalendarViewModel {
 
     /// Opens Calendar.app (要件定義.md §17.2 クリックで起動).
     func openCalendarApp() {
-        if let url = URL(string: "ical://") {
-            workspace.open(url)
-        }
+        service.openCalendarApp()
     }
 }

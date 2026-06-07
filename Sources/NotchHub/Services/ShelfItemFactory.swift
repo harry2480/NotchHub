@@ -43,13 +43,13 @@ struct ShelfItemFactory {
         return .file
     }
 
-    /// A short display name from text: its first non-empty line, truncated.
+    /// A short display name from text: its first non-empty line (after trimming),
+    /// truncated.
     static func title(forText text: String) -> String {
         let firstLine = text
             .split(whereSeparator: \.isNewline)
-            .first
-            .map(String.init)?
-            .trimmingCharacters(in: .whitespaces) ?? ""
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first { !$0.isEmpty } ?? ""
         let candidate = firstLine.isEmpty ? "Untitled" : firstLine
         return candidate.count > 40 ? String(candidate.prefix(40)) + "…" : candidate
     }

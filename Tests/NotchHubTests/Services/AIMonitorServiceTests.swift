@@ -5,7 +5,11 @@ import Testing
 struct AIMonitorServiceTests {
     private func makeService() -> (AIMonitorService, StubAISocketServer) {
         let socket = StubAISocketServer()
-        let service = AIMonitorService(socket: socket, now: { Date(timeIntervalSince1970: 1_000_000) })
+        let service = AIMonitorService(
+            socket: socket,
+            workspace: StubWorkspaceOpener(),
+            now: { Date(timeIntervalSince1970: 1_000_000) }
+        )
         return (service, socket)
     }
 

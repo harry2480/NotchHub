@@ -9,17 +9,16 @@ final class SettingsStore {
         didSet { persist() }
     }
 
-    private let repository: SettingsRepository
+    private let service: SettingsService
 
-    init(repository: SettingsRepository) {
-        self.repository = repository
-        // `didSet` does not fire during init, so loading does not re-persist.
-        settings = (try? repository.load()) ?? .default
+    init(service: SettingsService) throws {
+        self.service = service
+        settings = try service.load()
     }
 
     private func persist() {
         do {
-            try repository.save(settings)
+            try service.save(settings)
         } catch {
             Log.app.error("Failed to save settings: \(error.localizedDescription, privacy: .public)")
         }

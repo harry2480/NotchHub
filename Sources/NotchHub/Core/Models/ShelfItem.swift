@@ -9,6 +9,7 @@ struct ShelfItem: Identifiable, Equatable {
         case missingBody
         case missingBookmark
         case missingURL
+        case invalidURL
     }
 
     let id: UUID
@@ -40,7 +41,20 @@ struct ShelfItem: Identifiable, Equatable {
         case .text, .markdown:
             guard let body, !body.isEmpty else { throw ValidationError.missingBody }
         case .url:
-            guard urlString != nil else { throw ValidationError.missingURL }
+            guard let urlString, !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw ValidationError.missingURL
+            }
+            guard let components = URLComponents(string: urlString),
+                  let scheme = components.scheme,
+                  !scheme.isEmpty
+            else {
+                throw ValidationError.invalidURL
+            }
+            if ["http", "https"].contains(scheme.lowercased()) {
+                guard let host = components.host, !host.isEmpty else {
+                    throw ValidationError.invalidURL
+                }
+            }
         case .file, .folder, .image, .screenshot:
             guard bookmark != nil else { throw ValidationError.missingBookmark }
         }

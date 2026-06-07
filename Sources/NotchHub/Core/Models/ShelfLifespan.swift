@@ -18,7 +18,9 @@ enum ShelfLifespan: Equatable, Hashable {
         case .forever:
             nil
         case let .days(count):
-            createdAt.addingTimeInterval(TimeInterval(count) * Self.secondsPerDay)
+            // Guard against corrupted/non-positive values, which would otherwise
+            // make every item instantly expired. Treat them as "never expires".
+            count > 0 ? createdAt.addingTimeInterval(TimeInterval(count) * Self.secondsPerDay) : nil
         }
     }
 

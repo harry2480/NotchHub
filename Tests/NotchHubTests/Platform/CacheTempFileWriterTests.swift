@@ -46,4 +46,15 @@ struct CacheTempFileWriterTests {
         let url = try writer.writeText("x", suggestedName: "already.txt")
         #expect(url.lastPathComponent == "already.txt")
     }
+
+    @Test
+    func suggestedNameCannotEscapeUniqueFolder() throws {
+        let (writer, dir) = try makeWriter()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let url = try writer.writeText("x", suggestedName: "../escape")
+
+        #expect(url.lastPathComponent == "escape.txt")
+        #expect(url.deletingLastPathComponent().deletingLastPathComponent() == dir)
+    }
 }

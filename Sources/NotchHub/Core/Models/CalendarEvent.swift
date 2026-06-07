@@ -20,11 +20,18 @@ struct CalendarSchedule: Equatable {
     static let empty = CalendarSchedule(next: nil, today: [])
 
     /// Builds the schedule from events, hiding those already finished and
-    /// ordering by start time. `next` is the soonest remaining event.
-    static func from(events: [CalendarEvent], now: Date) -> CalendarSchedule {
+    /// ordering by start time. `next` is the soonest remaining event; `today`
+    /// is restricted to events on the same calendar day as `now`.
+    static func from(events: [CalendarEvent], now: Date, calendar: Calendar = .current) -> CalendarSchedule {
         let remaining = events
             .filter { $0.end > now }
             .sorted { $0.start < $1.start }
-        return CalendarSchedule(next: remaining.first, today: remaining)
+        let startOfDay = calendar.startOfDay(for: now)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)
+        let today = remaining.filter { event in
+            guard let endOfDay else { return calendar.isDate(event.start, inSameDayAs: now) }
+            return event.start < endOfDay && event.end > startOfDay
+        }
+        return CalendarSchedule(next: remaining.first, today: today)
     }
 }

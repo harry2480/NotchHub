@@ -10,7 +10,7 @@ struct MediaViewModelTests {
     @Test
     func refreshReadsNowPlaying() {
         let controller = StubMediaController(current: track(playing: true))
-        let viewModel = MediaViewModel(controller: controller)
+        let viewModel = MediaViewModel(service: MediaService(controller: controller))
         viewModel.refresh()
         #expect(viewModel.nowPlaying?.title == "Song")
     }
@@ -18,7 +18,7 @@ struct MediaViewModelTests {
     @Test
     func transportControlsDelegateToController() {
         let controller = StubMediaController(current: track(playing: true))
-        let viewModel = MediaViewModel(controller: controller)
+        let viewModel = MediaViewModel(service: MediaService(controller: controller))
         viewModel.playPause()
         viewModel.next()
         viewModel.previous()

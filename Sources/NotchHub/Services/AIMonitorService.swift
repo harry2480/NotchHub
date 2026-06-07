@@ -13,10 +13,16 @@ final class AIMonitorService {
     var onSessionsChanged: (() -> Void)?
 
     private let socket: AISocketServing
+    private let workspace: WorkspaceOpening
     private let now: () -> Date
 
-    init(socket: AISocketServing, now: @escaping () -> Date = Date.init) {
+    init(
+        socket: AISocketServing,
+        workspace: WorkspaceOpening,
+        now: @escaping () -> Date = Date.init
+    ) {
         self.socket = socket
+        self.workspace = workspace
         self.now = now
     }
 
@@ -64,6 +70,11 @@ final class AIMonitorService {
             let matching = sessions.filter { $0.source == source }
             return matching.isEmpty ? nil : (source, matching)
         }
+    }
+
+    func reveal(_ session: AISession) {
+        guard let cwd = session.cwd, !cwd.isEmpty else { return }
+        workspace.revealInFinder(URL(fileURLWithPath: cwd))
     }
 
     // MARK: - Private

@@ -7,6 +7,11 @@ import AppKit
 /// `bootstrap()` opens the databases and builds the repositories; the factory
 /// methods assemble the services, view models and windows on the main actor.
 final class AppComposition {
+    enum CompositionError: Error {
+        case notBootstrapped
+        case settingsStoreUnavailable
+    }
+
     let loginItemManager: LoginItemManaging
 
     private let bookmarkResolver: BookmarkResolving = SecurityScopedBookmarkResolver()
@@ -43,12 +48,15 @@ final class AppComposition {
 
     /// Assembles the notch window, its services and view models.
     @MainActor
-    func makeNotchController() -> NotchWindowController {
-        let settingsStore = SettingsStore(repository: settingsRepository ?? StubSettingsRepository())
+    func makeNotchController() throws -> NotchWindowController {
+        guard let shelfRepository, let airDropHistoryRepository, let settingsRepository else {
+            throw CompositionError.notBootstrapped
+        }
+        let settingsStore = try SettingsStore(service: SettingsService(repository: settingsRepository))
         self.settingsStore = settingsStore
 
         let shelfService = ShelfService(
-            repository: shelfRepository ?? StubShelfRepository(),
+            repository: shelfRepository,
             bookmarkResolver: bookmarkResolver,
             workspace: workspace,
             lifespan: settingsStore.settings.lifespan
@@ -56,7 +64,7 @@ final class AppComposition {
         let shareService = ShareService(
             sharing: AppKitSharingPresenter(anchor: { NSApp.windows.first { $0 is NSPanel }?.contentView }),
             tempFileWriter: makeTempFileWriter(),
-            history: airDropHistoryRepository ?? StubAirDropHistoryRepository()
+            history: airDropHistoryRepository
         )
         let dropCoordinator = DefaultDropCoordinator(
             shelfService: shelfService,
@@ -67,9 +75,11 @@ final class AppComposition {
         let screenProvider = AppKitScreenProvider()
         let notchViewModel = NotchViewModel(screenProvider: screenProvider, dropCoordinator: dropCoordinator)
 
-        let aiService = AIMonitorService(socket: makeAISocketServer())
+        let aiService = AIMonitorService(socket: makeAISocketServer(), workspace: workspace)
         aiService.onApprovalNeeded = { [weak notchViewModel] _ in
-            MainActor.assumeIsolated { notchViewModel?.aiApprovalRequested() }
+            Task { @MainActor [weak notchViewModel] in
+                notchViewModel?.aiApprovalRequested()
+            }
         }
         aiService.start()
         aiMonitorService = aiService
@@ -78,11 +88,10 @@ final class AppComposition {
             notch: notchViewModel,
             shelf: ShelfViewModel(service: shelfService),
             calendar: CalendarViewModel(
-                service: CalendarService(provider: EventKitCalendarProvider()),
-                workspace: workspace
+                service: CalendarService(provider: EventKitCalendarProvider(), workspace: workspace)
             ),
-            media: MediaViewModel(controller: AppleScriptMediaController()),
-            ai: AIMonitorViewModel(service: aiService, workspace: workspace),
+            media: MediaViewModel(service: MediaService(controller: AppleScriptMediaController())),
+            ai: AIMonitorViewModel(service: aiService),
             settings: settingsStore
         )
 
@@ -103,10 +112,11 @@ final class AppComposition {
 
     /// Settings window, sharing the same ``SettingsStore`` as the notch.
     @MainActor
-    func makeSettingsWindowController() -> SettingsWindowController {
-        let store = settingsStore ?? SettingsStore(repository: settingsRepository ?? StubSettingsRepository())
-        settingsStore = store
-        return SettingsWindowController(store: store)
+    func makeSettingsWindowController() throws -> SettingsWindowController {
+        guard let settingsStore else {
+            throw CompositionError.settingsStoreUnavailable
+        }
+        return SettingsWindowController(store: settingsStore)
     }
 
     private func makeTempFileWriter() -> TempFileWriting {

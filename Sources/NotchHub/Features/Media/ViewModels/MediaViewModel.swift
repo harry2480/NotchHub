@@ -7,28 +7,28 @@ import Observation
 final class MediaViewModel {
     private(set) var nowPlaying: NowPlaying?
 
-    private let controller: MediaControlling
+    private let service: MediaService
 
-    init(controller: MediaControlling) {
-        self.controller = controller
+    init(service: MediaService) {
+        self.service = service
     }
 
     func refresh() {
-        nowPlaying = controller.nowPlaying()
+        nowPlaying = service.nowPlaying()
     }
 
     func playPause() {
-        controller.playPause()
+        service.playPause()
         refresh()
     }
 
     func next() {
-        controller.next()
+        service.next()
         refresh()
     }
 
     func previous() {
-        controller.previous()
+        service.previous()
         refresh()
     }
 }

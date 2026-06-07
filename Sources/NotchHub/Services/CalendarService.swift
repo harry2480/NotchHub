@@ -5,11 +5,18 @@ import Foundation
 /// the pure ``CalendarSchedule/from(events:now:)``.
 final class CalendarService {
     private let provider: CalendarProviding
+    private let workspace: WorkspaceOpening
     private let calendar: Calendar
     private let now: () -> Date
 
-    init(provider: CalendarProviding, calendar: Calendar = .current, now: @escaping () -> Date = Date.init) {
+    init(
+        provider: CalendarProviding,
+        workspace: WorkspaceOpening,
+        calendar: Calendar = .current,
+        now: @escaping () -> Date = Date.init
+    ) {
         self.provider = provider
+        self.workspace = workspace
         self.calendar = calendar
         self.now = now
     }
@@ -25,6 +32,13 @@ final class CalendarService {
             return .empty
         }
         let events = try provider.events(from: startOfDay, to: endOfDay)
-        return CalendarSchedule.from(events: events, now: current)
+        return CalendarSchedule.from(events: events, now: current, calendar: calendar)
+    }
+
+    /// Opens Calendar.app (要件定義.md §17.2). Lives in the Service so the
+    /// ViewModel never touches the OS directly.
+    func openCalendarApp() {
+        guard let url = URL(string: "ical://") else { return }
+        workspace.open(url)
     }
 }
