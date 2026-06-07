@@ -1,22 +1,30 @@
 import SwiftUI
 
-/// The assimilated notch. Shows nothing by default, or a single glyph for the
-/// highest-priority ``MinimalStatus`` (要件定義.md §6).
+/// The assimilated notch. By default it renders nothing (so it blends with the
+/// hardware notch / wallpaper) and only acts as a click target; when a
+/// ``MinimalStatus`` is active it shows a single compact badge (要件定義.md §6).
 struct CollapsedNotchView: View {
     let status: MinimalStatus?
+    var onClick: () -> Void = {}
 
     var body: some View {
         ZStack {
-            Capsule(style: .continuous)
-                .fill(NotchStyle.notchFill)
+            // Transparent base keeps the whole collapsed area clickable while
+            // staying invisible when idle (要件定義.md §5.1 同化).
+            Color.clear
 
             if let status {
                 Text(status.glyph)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 3)
+                    .background(Capsule(style: .continuous).fill(NotchStyle.notchFill))
                     .accessibilityLabel(accessibilityLabel(for: status))
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onClick)
     }
 
     private func accessibilityLabel(for status: MinimalStatus) -> String {

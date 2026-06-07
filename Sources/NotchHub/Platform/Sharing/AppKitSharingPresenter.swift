@@ -17,6 +17,9 @@ final class AppKitSharingPresenter: NSObject, SharingPresenting {
 
     func presentShareSheet(for urls: [URL]) {
         guard !urls.isEmpty, let view = anchor() else { return }
+        // The picker pops over from a window that must be visible/active.
+        NSApp.activate(ignoringOtherApps: true)
+        view.window?.makeKeyAndOrderFront(nil)
         let picker = NSSharingServicePicker(items: urls)
         picker.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
     }
@@ -26,6 +29,8 @@ final class AppKitSharingPresenter: NSObject, SharingPresenting {
             completion(.failed)
             return
         }
+        NSApp.activate(ignoringOtherApps: true)
+        anchor()?.window?.makeKeyAndOrderFront(nil)
         let delegate = AirDropDelegate(completion: completion)
         let key = ObjectIdentifier(delegate)
         delegate.onFinish = { [weak self] in self?.activeDelegates[key] = nil }

@@ -17,6 +17,28 @@ struct NotchGeometryTests {
     }
 
     @Test
+    func collapsedHugsTheRealNotchOnNotchDisplays() {
+        let notchSize = CGSize(width: 210, height: 37)
+        let notched = ScreenInfo(
+            id: 2,
+            frame: CGRect(x: 0, y: 0, width: 1512, height: 982),
+            hasNotch: true,
+            notchSize: notchSize
+        )
+        let collapsed = NotchGeometry.frame(for: .collapsed, on: notched)
+        // Real notch width; height extends below the cutout for a click target.
+        #expect(collapsed.width == notchSize.width)
+        #expect(collapsed.height == notchSize.height + NotchLayout.notchClickMargin)
+        #expect(collapsed.midX == notched.frame.midX)
+        #expect(collapsed.maxY == notched.frame.maxY)
+        // Expansion uses the content-panel size and sits BELOW the notch so its
+        // content is not hidden by the cutout.
+        let expanded = NotchGeometry.frame(for: .expanded, on: notched)
+        #expect(expanded.size == NotchLayout.expanded)
+        #expect(expanded.maxY == notched.frame.maxY - notchSize.height)
+    }
+
+    @Test
     func frameRespectsOffsetScreenOrigin() {
         let external = ScreenInfo(id: 1, frame: CGRect(x: 1440, y: 0, width: 1920, height: 1080))
         let frame = NotchGeometry.frame(for: .collapsed, on: external)

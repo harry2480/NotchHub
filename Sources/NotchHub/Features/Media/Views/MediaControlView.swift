@@ -10,18 +10,28 @@ struct MediaControlView: View {
             if let track = viewModel.nowPlaying {
                 content(track)
             } else {
-                VStack(spacing: 6) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 26))
-                        .foregroundStyle(.secondary)
-                    Text("Nothing playing")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                emptyState
             }
         }
-        .onAppear { viewModel.refresh() }
+        .onAppear { viewModel.startPolling() }
+        .onDisappear { viewModel.stopPolling() }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "music.note")
+                .font(.system(size: 26))
+                .foregroundStyle(.secondary)
+            Text("Apple Music / Spotify が再生されていません")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button("Apple Music を開く") { viewModel.openDefaultPlayer() }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+        }
+        .padding(NotchStyle.contentPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func content(_ track: NowPlaying) -> some View {

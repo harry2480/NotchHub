@@ -31,7 +31,7 @@ final class NotchViewModel {
     init(screenProvider: ScreenProviding, dropCoordinator: DropCoordinating) {
         self.screenProvider = screenProvider
         self.dropCoordinator = dropCoordinator
-        currentScreen = screenProvider.main
+        currentScreen = screenProvider.preferredScreen
     }
 
     // MARK: - Expansion / collapse

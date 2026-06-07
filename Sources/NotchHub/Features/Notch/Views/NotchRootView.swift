@@ -10,7 +10,7 @@ struct NotchRootView: View {
     }
 
     var body: some View {
-        let size = NotchLayout.size(for: viewModel.mode)
+        let size = NotchGeometry.size(for: viewModel.mode, on: viewModel.currentScreen)
         return ZStack {
             modeContent
                 .frame(width: size.width, height: size.height)
@@ -25,14 +25,13 @@ struct NotchRootView: View {
         }
         .frame(width: size.width, height: size.height)
         .animation(.easeInOut(duration: NotchStyle.modeTransitionDuration), value: viewModel.mode)
-        .onDrop(of: DropItemLoader.readableTypes, delegate: NotchDropDelegate(viewModel: viewModel))
     }
 
     @ViewBuilder
     private var modeContent: some View {
         switch viewModel.mode {
         case .collapsed:
-            CollapsedNotchView(status: viewModel.minimalStatus)
+            CollapsedNotchView(status: viewModel.minimalStatus) { viewModel.click() }
         case .dragging:
             DraggingNotchView(hoveredZone: viewModel.dragSession?.hoveredZone)
         case .expanded:

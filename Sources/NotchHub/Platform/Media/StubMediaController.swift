@@ -25,4 +25,8 @@ final class StubMediaController: MediaControlling {
     func previous() {
         commands.append("previous")
     }
+
+    func openDefaultPlayer() {
+        commands.append("openDefaultPlayer")
+    }
 }

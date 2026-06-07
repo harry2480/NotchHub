@@ -11,6 +11,9 @@ enum NotchLayout {
     static let dragApproachThreshold: CGFloat = 12
     /// Fraction of each drop column treated as inactive margin (Dead Zone).
     static let dropZoneDeadZoneRatio: CGFloat = 0.16
+    /// Extra height added below a real notch so the collapsed window has a
+    /// clickable strip outside the (non-interactive) camera cutout.
+    static let notchClickMargin: CGFloat = 16
 
     static func size(for mode: NotchMode) -> CGSize {
         switch mode {

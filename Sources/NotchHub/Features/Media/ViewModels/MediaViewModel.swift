@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 /// Drives the Media tab (要件定義.md §18): now-playing display and basic
@@ -8,6 +9,7 @@ final class MediaViewModel {
     private(set) var nowPlaying: NowPlaying?
 
     private let service: MediaService
+    @ObservationIgnored private var pollTimer: Timer?
 
     init(service: MediaService) {
         self.service = service
@@ -15,6 +17,26 @@ final class MediaViewModel {
 
     func refresh() {
         nowPlaying = service.nowPlaying()
+    }
+
+    /// Refreshes immediately and then polls, so the tab reflects playback that
+    /// starts (or stops) while it is open.
+    func startPolling(interval: TimeInterval = 2) {
+        refresh()
+        pollTimer?.invalidate()
+        pollTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
+    }
+
+    func stopPolling() {
+        pollTimer?.invalidate()
+        pollTimer = nil
+    }
+
+    /// Opens Apple Music so the user can start playback (要件定義.md §18).
+    func openDefaultPlayer() {
+        service.openDefaultPlayer()
     }
 
     func playPause() {
