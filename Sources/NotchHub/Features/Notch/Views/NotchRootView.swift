@@ -21,10 +21,12 @@ struct NotchRootView: View {
                     ToastView(message: toast, onUndo: toast.isUndoable ? { viewModel.undoLastDrop() } : nil)
                         .padding(.bottom, NotchStyle.contentPadding)
                 }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .frame(width: size.width, height: size.height)
-        .animation(.easeInOut(duration: NotchStyle.modeTransitionDuration), value: viewModel.mode)
+        .animation(NotchStyle.modeTransition, value: viewModel.mode)
+        .animation(NotchStyle.modeTransition, value: viewModel.toast)
     }
 
     @ViewBuilder
