@@ -38,7 +38,7 @@ final class MediaService {
         controller.seek(to: seconds)
     }
 
-    func artwork() -> Data? {
+    func artwork() -> MediaArtwork? {
         controller.artwork()
     }
 }

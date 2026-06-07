@@ -91,14 +91,54 @@ struct MediaViewModelTests {
     }
 
     @Test
-    func artworkLoadsForCurrentTrack() {
+    func localArtworkLoadsSynchronously() {
         let controller = StubMediaController(
             current: track(playing: true, title: "First"),
-            artworkData: Data([0x1, 0x2, 0x3])
+            artwork: .data(Data([0x1, 0x2, 0x3]))
         )
         let viewModel = MediaViewModel(service: MediaService(controller: controller))
         viewModel.refresh()
         #expect(viewModel.artwork == Data([0x1, 0x2, 0x3]))
+    }
+
+    @Test
+    func remoteArtworkLoadsAsynchronouslyWithoutBlocking() async throws {
+        // Use a file:// URL so the test is deterministic and offline-safe.
+        let tmp = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("notchhub-art-\(UUID().uuidString).bin")
+        let bytes = Data([0xA, 0xB, 0xC, 0xD])
+        try bytes.write(to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let controller = StubMediaController(current: track(playing: true), artwork: .remote(tmp))
+        let viewModel = MediaViewModel(service: MediaService(controller: controller))
+        viewModel.refresh()
+        #expect(viewModel.artwork == nil) // not blocking: not yet loaded
+
+        try await waitUntil { viewModel.artwork == bytes }
+        #expect(viewModel.artwork == bytes)
+    }
+
+    @Test
+    func failedLocalArtworkIsNotCached() {
+        // nil artwork (e.g. track has none) must not be cached as success, so a
+        // later poll that does have artwork still loads it.
+        let controller = StubMediaController(current: track(playing: true), artwork: nil)
+        let viewModel = MediaViewModel(service: MediaService(controller: controller))
+        viewModel.refresh()
+        #expect(viewModel.artwork == nil)
+
+        controller.stubbedArtwork = .data(Data([0x9]))
+        viewModel.refresh() // same track, but artwork now available
+        #expect(viewModel.artwork == Data([0x9]))
+    }
+
+    /// Polls a main-actor condition until it holds or a short timeout elapses.
+    private func waitUntil(_ condition: () -> Bool, attempts: Int = 50) async throws {
+        for _ in 0 ..< attempts {
+            if condition() { return }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
     }
 
     @Test

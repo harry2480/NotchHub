@@ -26,7 +26,12 @@ final class MediaViewModel {
 
     private let service: MediaService
     @ObservationIgnored private var pollTimer: Timer?
+    /// Identity of the track whose artwork is currently displayed (set only on
+    /// a successful fetch).
     @ObservationIgnored private var artworkKey: String?
+    /// Identity of a remote artwork fetch in flight, to avoid duplicate requests
+    /// across polls while it loads.
+    @ObservationIgnored private var artworkLoadingKey: String?
 
     init(service: MediaService) {
         self.service = service
@@ -38,6 +43,7 @@ final class MediaViewModel {
         guard let track else {
             artwork = nil
             artworkKey = nil
+            artworkLoadingKey = nil
             position = 0
             return
         }
@@ -46,12 +52,33 @@ final class MediaViewModel {
         loadArtworkIfNeeded(for: track)
     }
 
-    /// Fetches artwork only when the track changes (the fetch may hit AppleScript
-    /// or the network, so it must not run on every poll tick).
+    /// Fetches artwork only when the track changes. `artworkKey` is committed
+    /// **only on success**, so a transient AppleScript / network failure does not
+    /// poison the cache — the next poll retries the same track.
     private func loadArtworkIfNeeded(for track: NowPlaying) {
-        guard track.identityKey != artworkKey else { return }
-        artworkKey = track.identityKey
-        artwork = service.artwork()
+        let key = track.identityKey
+        guard key != artworkKey else { return }
+        switch service.artwork() {
+        case let .data(data):
+            artwork = data
+            artworkKey = key
+        case let .remote(url):
+            // Fetch off the main thread; reflect only if the track is unchanged.
+            // `artworkKey` stays nil until success so a failure can be retried,
+            // while `artworkLoadingKey` prevents duplicate in-flight fetches.
+            guard artworkLoadingKey != key else { return }
+            artworkLoadingKey = key
+            Task { [weak self] in
+                let data = try? await URLSession.shared.data(from: url).0
+                guard let self else { return }
+                if artworkLoadingKey == key { artworkLoadingKey = nil }
+                guard let data, nowPlaying?.identityKey == key else { return }
+                artwork = data
+                artworkKey = key
+            }
+        case nil:
+            artwork = nil
+        }
     }
 
     /// Refreshes immediately and then polls, so the tab reflects playback that

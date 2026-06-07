@@ -51,7 +51,7 @@ final class AppleScriptMediaController: MediaControlling {
         run(command: "set player position to \(position)", on: activeSource())
     }
 
-    func artwork() -> Data? {
+    func artwork() -> MediaArtwork? {
         let source = activeSource()
         guard isRunning(source) else { return nil }
         switch source {
@@ -64,12 +64,13 @@ final class AppleScriptMediaController: MediaControlling {
                 end if
             end tell
             """
-            return runScriptData(script)
+            return runScriptData(script).map(MediaArtwork.data)
         case .spotify:
-            // Spotify only exposes an artwork URL; fetch it (track-change only).
+            // Spotify only exposes an artwork URL; the caller fetches it
+            // asynchronously so the main thread is never blocked on the network.
             let script = "tell application id \"\(Player.spotify)\" to get artwork url of current track"
             guard let urlString = runScript(script), let url = URL(string: urlString) else { return nil }
-            return try? Data(contentsOf: url)
+            return .remote(url)
         }
     }
 
