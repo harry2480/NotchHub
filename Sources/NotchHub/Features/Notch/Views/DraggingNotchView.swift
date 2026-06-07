@@ -14,7 +14,7 @@ struct DraggingNotchView: View {
         .padding(NotchStyle.contentPadding)
         .background(
             RoundedRectangle(cornerRadius: NotchStyle.cornerRadius, style: .continuous)
-                .fill(NotchStyle.notchFill.opacity(0.92))
+                .fill(NotchStyle.notchFill.opacity(NotchStyle.draggingFillOpacity))
         )
     }
 }

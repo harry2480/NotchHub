@@ -34,7 +34,7 @@ struct DragZoneLayout: Equatable {
     /// Fraction of each column/​height treated as inactive margin (0...1).
     let deadZoneRatio: CGFloat
 
-    init(frame: CGRect, deadZoneRatio: CGFloat = 0.16) {
+    init(frame: CGRect, deadZoneRatio: CGFloat = NotchLayout.dropZoneDeadZoneRatio) {
         self.frame = frame
         self.deadZoneRatio = min(max(deadZoneRatio, 0), 0.9)
     }

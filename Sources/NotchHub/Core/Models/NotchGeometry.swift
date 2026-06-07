@@ -19,7 +19,7 @@ enum NotchGeometry {
     static func isApproaching(
         _ point: CGPoint,
         on screen: ScreenInfo,
-        verticalThreshold: CGFloat = 12
+        verticalThreshold: CGFloat = NotchLayout.dragApproachThreshold
     ) -> Bool {
         let triggerWidth = NotchLayout.dragging.width
         let minX = screen.frame.midX - triggerWidth / 2

@@ -100,7 +100,7 @@ final class NotchWindowController {
         }
         // Esc closes (要件定義.md §5.3 補助).
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-            guard let self, event.keyCode == 53, viewModel.mode != .collapsed else { return event }
+            guard let self, event.keyCode == KeyCode.escape, viewModel.mode != .collapsed else { return event }
             viewModel.collapse()
             return nil
         }

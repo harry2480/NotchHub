@@ -20,7 +20,7 @@ struct NotchRootView: View {
             }
         }
         .frame(width: size.width, height: size.height)
-        .animation(.easeInOut(duration: 0.18), value: viewModel.mode)
+        .animation(.easeInOut(duration: NotchStyle.modeTransitionDuration), value: viewModel.mode)
         .onDrop(of: DropItemLoader.readableTypes, delegate: NotchDropDelegate(viewModel: viewModel))
     }
 
