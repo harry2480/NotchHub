@@ -49,6 +49,28 @@ struct SQLiteDatabaseTests {
     }
 
     @Test
+    func queryDistinguishesNullAndEmptyBlobs() throws {
+        let database = try makeDatabase()
+        try database.run(
+            "INSERT INTO item (name, blob) VALUES (?, ?);",
+            [.text("null"), .null]
+        )
+        try database.run(
+            "INSERT INTO item (name, blob) VALUES (?, ?);",
+            [.text("empty"), .blob(Data())]
+        )
+
+        let rows = try database.query("SELECT name, blob FROM item ORDER BY id;")
+        #expect(rows.count == 2)
+        let nullRow = try #require(rows.first)
+        let emptyRow = try #require(rows.last)
+        #expect(nullRow.data("blob") == nil)
+        #expect(nullRow["blob"] == .null)
+        #expect(emptyRow.data("blob") == Data())
+        #expect(emptyRow["blob"] == .blob(Data()))
+    }
+
+    @Test
     func parametersPreventInjection() throws {
         let database = try makeDatabase()
         let malicious = "x'); DROP TABLE item; --"
