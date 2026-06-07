@@ -1,0 +1,31 @@
+# SwiftLint configuration for NotchHub (品質チェック・テスト規約.md §静的解析)
+excluded:
+  - .build
+  - apps
+  - docs
+
+opt_in_rules:
+  - force_unwrapping
+  - empty_count
+  - explicit_init
+  - first_where
+  - sorted_first_last
+
+disabled_rules:
+  - todo
+
+line_length:
+  warning: 120
+  error: 160
+
+identifier_name:
+  min_length: 1 # allow short, conventional names such as id, db, to
+  excluded:
+    - id
+
+type_name:
+  min_length: 2
+
+function_body_length:
+  warning: 60
+  error: 100

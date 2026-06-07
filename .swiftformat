@@ -1,0 +1,11 @@
+# SwiftFormat configuration for NotchHub (スタイルガイド.md §1)
+--swiftversion 5.10
+--indent 4
+--maxwidth 120
+--self remove
+--commas inline
+--trailingcommas always
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--exclude .build,apps,Tests/NotchHubTests/.build

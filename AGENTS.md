@@ -1,99 +1,104 @@
-<!--
-【テンプレート】AIエージェント運用ガイド
-リポジトリ内でAIエージェント（Copilot, Claude Code, Cursorなど）が自律的または対話的にコード操作・調査・ドキュメント作成を行う際のルールや指針を定義するテンプレートです。
-プレースホルダー（{{ }}）をプロジェクト固有の情報に置き換えて使用してください。
--->
+# NotchHub AIエージェントへの指針 (AGENTS.md)
 
-# {{PROJECT_NAME / 例：〇〇プロジェクト}} AIエージェントへの指針 (AGENTS.md)
+このファイルは、NotchHub リポジトリでコードを操作する AI エージェント（Claude Code, Copilot, Cursor など）へのルールおよび指針を提供する。
 
-このファイルは、このリポジトリでコードを操作する際のAIエージェントへのルールおよび指針を提供します。
+NotchHub は **Mac のノッチを活用した共有・一時保管ハブ**（Swift / SwiftUI + AppKit による macOS 常駐ネイティブアプリ）である。AI アシスタント管理アプリではない。詳細は [`docs/要件定義.md`](docs/要件定義.md) と [`docs/サービスコンセプト.md`](docs/サービスコンセプト.md) を参照。
 
 ## 必須ルール
 
-### {{WORKTREE_RULE_TITLE / 例：Worktree必須}}
-コード変更を伴う作業は、**必ず {{GIT_WORKFLOW / 例：git worktree}} を作成してから開始すること**。メインのリポジトリディレクトリでは直接コード変更を行わない。
+### レイヤー境界を越えない（最重要）
+依存方向は **`View → ViewModel → Service → Repository/Platform（protocol）`**、Model（`Core/Models`）は最内層で外部依存なし（[`docs/アーキテクチャ.md`](docs/アーキテクチャ.md)）。
 
-```bash
-# 1. {{WORKFLOW_STEP_1 / 例：worktreeを作成}}
-{{CMD_WORKTREE_CREATE / 例：git worktree add ../{{PROJECT_PREFIX}}-<branch-name> -b <branch-name>}}
+- **View / ViewModel から SQLite・OS API を直接呼ばず、必ず Service 経由でアクセスする**
+- **Service は Repository / Platform の protocol にのみ依存する。** 具体実装を直接 import しない
+- **DI の組み立ては `App/Composition/`（Composition Root）でのみ行う**
 
-# 2. {{WORKFLOW_STEP_2 / 例：環境や権限定義のコピー}}
-{{CMD_ENV_COPY / 例：cp .env ../{{PROJECT_PREFIX}}-<branch-name>/}}
-```
+### OS API は Platform 層に隠蔽する
+NSSharingService / EventKit / Accessibility / File System Events / Local Socket / AppleScript などの OS API は **必ず `Platform/` の protocol の裏に隠す**。本番実装と Stub 実装をペアで用意し、テスト・プレビュー・権限未付与時に Stub へ差し替えられるようにする。
 
-- **目的**: {{WORKFLOW_PURPOSE / 例：developブランチを常にクリーンに保ち、作業の分離と並列作業を容易にする}}
-- **例外なし**: {{WORKFLOW_EXCEPTION / 例：ドキュメントのみの変更も含め、すべてのコミットでworktreeを使用すること}}
+### 永続化規約
+- ファイル / フォルダは **コピーせず BookmarkData（Security Scoped Bookmark）で参照保持** する。元ファイル削除時は Shelf から自動除去する
+- SQLite アクセスは `Repositories/` に集約。スキーマ変更は **バージョン管理されたマイグレーション**（`user_version`）で前方向きに適用する（[`docs/リポジトリ層設計規約.md`](docs/リポジトリ層設計規約.md)）
 
-### データアクセス
-**UIコンポーネント（{{UI_EXTENSION / 例：`.tsx`}}ファイル）から{{DB_CLIENT / 例：Supabase}}を直接呼び出してはいけない。** {{SERVICE_LAYER / 例：Service層}}経由でアクセスすること。
-コード例・配置場所の詳細は設計ガイドラインを参照。
+### 権限の扱い
+- **権限（Files & Folders / Calendar / Accessibility / Notifications / Automation）は必要になった時点で要求する。初回に一括要求しない**
+- `userId` のようなサーバー概念は存在しない。NotchHub はローカル完結アプリである
 
-### {{DECLARATIVE_DATA_TITLE / 例：宣言的データ管理}}
-{{DATA_DOMAIN / 例：マスターデータや定義データ}}は **{{DATA_FORMAT / 例：YAML}}ファイルで宣言的に管理** されている。SQLマイグレーションで直接変更しないこと。
-- `{{DATA_FILE_PATH_1 / 例：data/items.yaml}}` - {{DATA_DESC_1 / 例：アイテム定義}}
-- CI/CDデプロイ時に `{{SYNC_CMD / 例：npm run data:sync}}` で自動同期される
-
-### 認可（Authorization）
-- **{{USER_ID_VAR / 例：userId}}は必ずサーバーサイドでセッションから取得する**（クライアントから受け取らない）
-- **認可チェックは{{ACTION_LAYER / 例：actions層}}で行う**
-- **リソースの所有者チェックは専用の認可関数に分離する**
+### ノッチ UI の鉄則
+- 通常時はノッチに同化し、展開トリガーは **「ドラッグ接近 / クリック / AI 承認待ち」のみ**。Hover・カーソル接近で展開してはいけない
+- 最小状態は優先度順に **常に 1 状態のみ** 表示する
+- Drop 時のみ処理を実行する（誤操作防止：Dead Zone・強調・Toast・Undo）
 
 ## 作業ルール
 
-### {{PARALLEL_PR_RULE / 例：並列PR作成}}
-複数の独立したPRを作成する場合は `{{SKILL_PARALLEL_PR / 例：/parallel-pr}}` スキルを使用すること。
-
 ### 要件定義・実装計画
-依頼された場合は、最初に論点を洗い出してユーザーに質問しながらクリアにし、マークダウンでドキュメントを作成すること。
-
-### 自己学習
-セッション中の発見やPRレビューのフィードバックを、プロジェクト設定に自動反映する仕組み。
-
-- **PRレビュー後**: `{{SKILL_RETRO / 例：/retro}} {PR番号}` でCodeRabbit・レビュアーの指摘を分析し、各種設定ファイルに反映する
-- **学びの分類先**:
-  - 普遍ルール → `{{GUIDELINE_FILE / 例：CLAUDE.md}}`
-  - ワークフロー改善 → `{{SKILLS_DIR / 例：skills/commands}}`
-  - 運用知識・ワークアラウンド → `{{MEMORY_FILE / 例：MEMORY.md}}`
+依頼された場合は、最初に論点を洗い出してユーザーに質問しながらクリアにし、マークダウンでドキュメントを作成する。
 
 ### ドキュメント管理
-設計作業などのドキュメント作成を依頼された場合は、以下のルールに従ってファイルを作成すること：
+- 設計ドキュメントは `docs/` 配下に Markdown で作成する
+- 既存の設計ドキュメント（要件定義 / アーキテクチャ / 各規約）と矛盾しないよう、変更時は関連ドキュメントも更新する
 
-- ファイル名: `{{DOC_NAME_FMT / 例：YYYYMMDD_HHMM_{日本語の作業内容}.md}}`
-- 保存場所: `{{DOC_DIR / 例：docs/}}` 以下
-- フォーマット: Markdown
+### Push 前の必須チェック
+本リポジトリは Swift Package Manager 構成を採用している（理由・詳細は [`docs/開発環境.md`](docs/開発環境.md)）。`git push` する前に `make verify` を実行し、全てパスすることを確認する（[`docs/品質チェック・テスト規約.md`](docs/品質チェック・テスト規約.md)）。`make verify` は以下を順に実行する:
 
-### GitHub Issue作成
-- プラン内容を簡略化せず、そのままissueに記載する
-- コード例、SQL、型定義などの詳細な実装内容を含める
-- 検証方法を具体的に記載する
+1. `swiftformat --lint .` — フォーマット検証
+2. `./scripts/swiftlint.sh --strict` — 静的解析
+3. `swift build` — ビルド・型チェック（警告ゼロ）
+4. `./scripts/swift-test.sh` — テスト（swift-testing）
 
-### Push前の必須チェック
-`git push` する前に、以下のコマンドを必ず実行し、全てパスすることを確認する：
-
-1. `{{CHECK_CMD_1 / 例：pnpm run biome:check:write}}` - フォーマット + リント
-2. `{{CHECK_CMD_2 / 例：pnpm run typecheck}}` - 型チェック
-3. `{{CHECK_CMD_3 / 例：pnpm run test:unit}}` - ユニットテスト
-
-いずれかが失敗した場合は修正してからpushすること。
+いずれかが失敗した場合は修正してから push する。`!`（force unwrap）・`try!`・`as!` は原則禁止。
 
 ## 開発コマンド
 
-よく使うコマンド:
-- `{{DEV_CMD / 例：pnpm run dev}}` - 開発サーバー起動
-- `{{TEST_CMD / 例：pnpm run test:unit}}` - ユニットテスト実行
+SPM 構成のため `swift` ツールチェーンで操作する（詳細 [`docs/開発環境.md`](docs/開発環境.md)）。
+
+```sh
+# ビルド
+make build            # swift build
+
+# テスト
+make test             # ./scripts/swift-test.sh
+swift test --filter MigrationRunnerTests   # 特定 Suite のみ
+
+# フォーマット適用 / 検証
+make format           # swiftformat .
+swiftformat --lint .
+
+# 静的解析
+make lint             # ./scripts/swiftlint.sh --strict
+
+# 一括検証（push 前）
+make verify
+```
 
 ## アーキテクチャ
 
-**設計思想**: {{ARCH_CONCEPT / 例：機能単位モジュール分割}}
+**設計思想**: 機能（Feature）単位モジュール分割 + MVVM + Service + Repository レイヤード
 
-**主要技術スタック**: {{TECH_STACK / 例：Next.js / Supabase / Tailwind CSS / TypeScript}}
+**技術スタック**: Swift / SwiftUI / AppKit / SQLite / EventKit / NSSharingService / Accessibility API / Security Scoped Bookmark / Local Socket / AppleScript
 
 ## ディレクトリ構造
 
 ```text
-{{SRC_DIR / 例：src/}}
-├── {{APP_DIR / 例：app/}}              # {{APP_DIR_DESC / 例：ルーティング}}
-├── {{COMPONENTS_DIR / 例：components/}}       # {{COMPONENTS_DIR_DESC / 例：共通UIコンポーネント}}
-├── {{FEATURES_DIR / 例：features/}}         # {{FEATURES_DIR_DESC / 例：機能ベースモジュール}}
-└── {{LIB_DIR / 例：lib/}}              # {{LIB_DIR_DESC / 例：共有ライブラリ}}
+Sources/NotchHub/
+├── App/            # エントリ・メニューバー・ノッチウィンドウ・Composition Root
+├── Core/           # 共通: Models / Extensions / Utilities / DI
+├── Features/       # 機能モジュール（Notch / Shelf / AirDrop / Share / AIMonitor / Calendar / Media）
+│   └── */          # Views（SwiftUI） + ViewModels
+├── Services/       # ビジネスロジック（protocol + 実装）
+├── Repositories/   # 永続化（protocol + 実装 + Stub）
+├── Platform/       # OS 統合（protocol + 実装 + Stub）
+└── Resources/      # アセット・Info.plist・entitlements
 ```
+
+## 参照ドキュメント
+
+- [`docs/要件定義.md`](docs/要件定義.md) — 機能要件（全24章）
+- [`docs/サービスコンセプト.md`](docs/サービスコンセプト.md) — プロダクトの位置付け
+- [`docs/アーキテクチャ.md`](docs/アーキテクチャ.md) — レイヤー構造・依存方向
+- [`docs/フロントエンドアーキテクチャ.md`](docs/フロントエンドアーキテクチャ.md) / [`docs/フロントエンド規約.md`](docs/フロントエンド規約.md) — UI（SwiftUI）方針・規約
+- [`docs/リポジトリ層設計規約.md`](docs/リポジトリ層設計規約.md) — 永続化（SQLite / BookmarkData）
+- [`docs/インフラストラクチャ規約.md`](docs/インフラストラクチャ規約.md) — ビルド・署名・配布・権限
+- [`docs/スタイルガイド.md`](docs/スタイルガイド.md) — Swift / SwiftUI コーディング規約
+- [`docs/テストガイドライン.md`](docs/テストガイドライン.md) / [`docs/品質チェック・テスト規約.md`](docs/品質チェック・テスト規約.md) — テスト・品質
+- [`docs/実装計画.md`](docs/実装計画.md) — フェーズ別実装計画
