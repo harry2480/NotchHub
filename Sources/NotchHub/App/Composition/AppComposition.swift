@@ -26,4 +26,20 @@ final class AppComposition {
         shelfDatabase = database
         Log.app.info("Composition bootstrap complete")
     }
+
+    /// Assembles the notch window and its dependencies (Phase 1). The drop
+    /// coordinator is a placeholder until the Shelf / AirDrop / Share services
+    /// arrive (Phase 2/3).
+    @MainActor
+    func makeNotchController() -> NotchWindowController {
+        let screenProvider = AppKitScreenProvider()
+        let dropCoordinator = StubDropCoordinator()
+        let viewModel = NotchViewModel(screenProvider: screenProvider, dropCoordinator: dropCoordinator)
+        let dragMonitor = AppKitGlobalDragMonitor()
+        return NotchWindowController(
+            viewModel: viewModel,
+            screenProvider: screenProvider,
+            dragMonitor: dragMonitor
+        )
+    }
 }

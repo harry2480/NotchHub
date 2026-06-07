@@ -20,6 +20,7 @@ enum NotchHubApp {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var composition: AppComposition?
     private var menuBarController: MenuBarController?
+    private var notchController: NotchWindowController?
 
     func applicationDidFinishLaunching(_: Notification) {
         let composition = AppComposition()
@@ -29,6 +30,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Log.app.error("Bootstrap failed: \(error.localizedDescription, privacy: .public)")
         }
         menuBarController = MenuBarController(loginItemManager: composition.loginItemManager)
+
+        let notchController = composition.makeNotchController()
+        notchController.start()
+        self.notchController = notchController
         self.composition = composition
+    }
+
+    func applicationWillTerminate(_: Notification) {
+        notchController?.stop()
     }
 }
