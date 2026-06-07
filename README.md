@@ -1,103 +1,82 @@
-# スターターテンプレート
+# NotchHub
 
-Claude Code や GitHub Copilot などの AI エージェントへの指示だけで高品質なプロダクトを構築できるスターターキットです。
-また、本リポジトリは**プロジェクト横断で利用可能なドキュメントテンプレート**や**AIエージェント向けの共通スキル・コマンド**を集約するハブとしても機能しています。
+**Mac のノッチを活用した「共有」と「一時保管」の常駐アプリ**（Swift / SwiftUI + AppKit のネイティブ macOS アプリ）。
 
-## ハーネスエンジニアリングとは
+ファイルをノッチへドラッグするだけで AirDrop / Share Sheet を即起動し、「あとで使う・あとで送る」を Shelf に一時保管できます。補助機能として AI CLI モニター・カレンダー・メディア操作を備えます。
 
-このスターターキットは、**ハーネスエンジニアリング**の考え方に基づいて設計されています。
+> 詳細な仕様は [`docs/要件定義.md`](docs/要件定義.md) と [`docs/サービスコンセプト.md`](docs/サービスコンセプト.md) を参照してください。
 
-ハーネスエンジニアリングとは、AIエージェントが正しく力を発揮できるように情報やルールを整えることを指します。`CLAUDE.md` による共通ルールの注入、Skills（スラッシュコマンド）による定型作業の標準化、dependency-cruiser による依存方向の機械的な検証など、**複数のガードレールを多重に敷くことで、AIが書くコードの品質を構造的に担保**します。
+## 主な機能
 
-これにより、AIエージェントを複数セッション並列で回しても、設計が崩れにくい開発が可能になります。
-
-詳しい背景と実践事例については、以下の記事をご覧ください。
-
-### このスターターキットに組み込まれたガードレール
-
-| ガードレール | 仕組み |
+| 機能 | 概要 |
 |---|---|
-| **設計ルールの注入** | `CLAUDE.md` や `docs/templates/` 配下にアーキテクチャ・命名規約・依存ルールを明文化し、AIにコンテキストを供給 |
-| **共通Skillsとプロンプト** | `.claude/skills/` や `.claude/commands/` にプロジェクト横断の定型作業コマンドを集約し、品質のばらつきを抑制 |
-| **依存方向の機械的検証** | dependency-cruiser で「domain は外部に依存しない」等のルールを CI で自動チェック |
-| **レイヤー別テスト戦略** | domain/application は Unit テスト、infrastructure は Integration テスト。テスト方針もドキュメント化 |
-| **統合CI/CD** | `.github/workflows/` に集約されたワークフローにより、型チェックやlint、テストを一元的に自動化 |
+| **AirDrop 高速化** | ノッチへドラッグ → AirDrop 共有 UI を即起動（履歴を保存、送信先は保存しない） |
+| **Shelf（一時保管）** | ファイル/フォルダ/テキスト/URL/Markdown を参照保持で保管・全文検索 |
+| Share Sheet | `NSSharingServicePicker` で Mail / Messages / Notes / Reminders などへ共有 |
+| Screenshot Auto Import | スクリーンショットを自動で Shelf に追加（ON/OFF） |
+| AI CLI Monitor | Claude Code / Codex / Antigravity のセッション・承認待ちを表示し Approve/Deny/Stop |
+| Calendar | EventKit で Next / Today を表示（過去は非表示、クリックで Calendar.app） |
+| Media | Apple Music / Spotify の再生情報表示と Play/Pause/Next/Previous |
 
-## テンプレートとドキュメント管理
+中核は **「AirDrop + Shelf」**、AI Monitor・Calendar・Media は補助機能という位置づけです。
 
-本リポジトリの `docs/` には、新しいプロジェクトを立ち上げる際や新しい機能を設計する際にそのまま使える汎用テンプレートが用意されています。
-AIに「`docs/` の〇〇を使って新しい機能の要件定義をして」と指示するだけで、ベストプラクティスに基づいた仕様書が生成されます。
+## 動作環境
 
-**収録テンプレートの例:**
-- アーキテクチャ設計規約
-- フロントエンド規約
-- スタイルガイド
-- 品質チェック・テスト規約
-- AIチャット機能要件定義 / 実装計画
-- AIエージェント運用ガイド
+- macOS 14+（将来の機能方針は macOS 15+ を基準に検討）
+- Apple Silicon / Intel
 
-## 技術スタック (標準構成)
+## アーキテクチャ
 
-- Next.js 15 (App Router) + Vercel
-- Supabase PostgreSQL + Prisma
-- shadcn/ui + Tailwind CSS
-- vitest + dependency-cruiser
-- Biome (lint/format)
-- AIツール: Vercel AI SDK, Streamdown
-
-## はじめかた
-
-### セットアップ
-
-AIエージェント（Claude Code 等）を開き、`/init-pj` を実行してください。前提ツールのインストールからDB構築まで自動で行います。
-
-## 使い方
-
-AIに自然言語で指示するだけで、テンプレートやルールに沿った機能追加が可能です。
-
-**コマンド例:**
-```
-「ユーザー管理機能を作って」
-「お気に入り機能を追加して」
-「/articles ページを作って」
-「○○テーブルにstatusカラムを追加して」
-「このエラーを直して: [エラーメッセージ]」
-```
-
-## 開発コマンド一覧
-
-| コマンド | 内容 |
-|---|---|
-| `pnpm dev` | 開発サーバー起動 |
-| `pnpm verify` | 品質チェック（lint → typecheck → test → depcruise） |
-| `pnpm test:unit` | Unit テスト実行 |
-| `pnpm lint:fix` | 自動フォーマット・Lint適用 |
-| `pnpm db:migrate` | DBマイグレーション |
-| `pnpm knip` | 未使用コード検出 |
-
-## プロジェクト構成
+**機能（Feature）単位モジュール + MVVM + Service + Repository** のレイヤード構成。
 
 ```text
-starter-templete/
-├── .claude/                # プロジェクト横断のAI SkillsとCommands
-├── .github/workflows/      # 統合CI/CDワークフロー（型チェック、ビルド、テスト等）
-├── docs/                   # プロジェクト横断で使えるドキュメント・定義テンプレート
-└── apps/webapp/src/        # メインアプリケーション
-    ├── app/                # ページ（Next.js App Router）
-    ├── backend/            # バックエンド全体
-    │   ├── application/    # ユースケース
-    │   ├── domain/         # ビジネスルール（モデル、インターフェース）
-    │   ├── infrastructure/ # DB・外部API実装
-    │   └── presentation/   # DI組み立て、データ取得、Server Actions
-    ├── frontend/           # フロントエンド・UI全体
-    └── lib/                # 共有ライブラリ
+依存方向: View → ViewModel → Service → Repository / Platform（protocol）
+          Model（Core/Models）は最内層・外部依存なし
 ```
 
-## サンプル実装について
+OS API（NSSharingService / EventKit / Accessibility / Local Socket / AppleScript / Security Scoped Bookmark）はすべて `Platform/` の protocol の裏に隠蔽し、本番実装と Stub をペアで用意しています。詳細は [`docs/アーキテクチャ.md`](docs/アーキテクチャ.md)。
 
-初期状態では Claude API を使ったジョーク生成機能がサンプルとして含まれています。
-`ANTHROPIC_API_KEY` を設定すると API 経由で動作し、未設定の場合は Stub（固定値）で動作します。
+### ディレクトリ構成
 
-```bash
-echo 'ANTHROPIC_API_KEY="your-api-key"' >> apps/webapp/.env.local
+```text
+Sources/NotchHub/
+├── App/            # エントリ・メニューバー・ノッチウィンドウ・Composition Root
+├── Core/           # Models / Theme / Components / Utilities
+├── Features/       # Notch / Shelf / AIMonitor / Calendar / Media / Settings
+├── Services/       # ビジネスロジック（protocol + 実装）
+├── Repositories/   # 永続化（protocol + SQLite + Stub）
+├── Platform/       # OS 統合（protocol + 実装 + Stub）
+└── Resources/      # Info.plist・entitlements（バンドル化時に適用）
+Tests/NotchHubTests/  # swift-testing（ソース構造を mirror）
 ```
+
+## 開発
+
+本リポジトリは **Swift Package Manager 構成**（full Xcode 不要、Command Line Tools でも可）。理由と詳細は [`docs/開発環境.md`](docs/開発環境.md)。
+
+```sh
+make build     # swift build
+make test      # swift-testing 実行
+make format    # swiftformat .
+make lint      # swiftlint --strict
+make verify    # format(lint) → lint → build → test（push 前に実行）
+```
+
+- テストは XCTest ではなく **swift-testing**（`import Testing`）を使用。
+- CI（[`.github/workflows/ci.yml`](.github/workflows/ci.yml)）は PR / push で `make verify` 相当を実行します。
+
+## ドキュメント
+
+- [`docs/要件定義.md`](docs/要件定義.md) — 機能要件（全24章）
+- [`docs/アーキテクチャ.md`](docs/アーキテクチャ.md) — レイヤー構造・依存方向
+- [`docs/フロントエンドアーキテクチャ.md`](docs/フロントエンドアーキテクチャ.md) / [`docs/フロントエンド規約.md`](docs/フロントエンド規約.md) — UI（SwiftUI）方針
+- [`docs/リポジトリ層設計規約.md`](docs/リポジトリ層設計規約.md) — 永続化（SQLite / BookmarkData）
+- [`docs/インフラストラクチャ規約.md`](docs/インフラストラクチャ規約.md) — ビルド・署名・配布・権限
+- [`docs/スタイルガイド.md`](docs/スタイルガイド.md) — コーディング規約
+- [`docs/テストガイドライン.md`](docs/テストガイドライン.md) / [`docs/品質チェック・テスト規約.md`](docs/品質チェック・テスト規約.md) — テスト・品質
+- [`docs/実装計画.md`](docs/実装計画.md) — フェーズ別実装計画
+- [`AGENTS.md`](AGENTS.md) — AI エージェント向けの開発指針
+
+## ライセンス
+
+[LICENSE](LICENSE) を参照。
