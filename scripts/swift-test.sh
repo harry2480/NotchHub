@@ -24,4 +24,6 @@ if [[ "$developer_dir" == *CommandLineTools* ]]; then
     fi
 fi
 
-exec swift test "${extra[@]}" "$@"
+# `${extra[@]+...}` guards against "unbound variable" under `set -u` when the
+# array is empty (bash 3.2, as shipped on macOS / the CI runner with full Xcode).
+exec swift test ${extra[@]+"${extra[@]}"} "$@"
