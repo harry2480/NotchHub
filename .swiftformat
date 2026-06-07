@@ -8,4 +8,7 @@
 --wraparguments before-first
 --wrapparameters before-first
 --wrapcollections before-first
+# Keep `{` attached to a multi-line condition's last line to match SwiftLint's
+# opening_brace rule (the two tools otherwise disagree).
+--disable wrapMultilineStatementBraces
 --exclude .build,apps,Tests/NotchHubTests/.build
