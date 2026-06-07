@@ -10,6 +10,11 @@ import SwiftUI
 /// SwiftUI feature views (フロントエンド規約.md §SwiftUI/AppKit の使い分け).
 @MainActor
 final class NotchWindowController {
+    struct FrameState: Equatable {
+        let mode: NotchMode
+        let screenID: ScreenInfo.ID
+    }
+
     private let scene: NotchScene
     private let screenshotMonitor: ScreenshotMonitoring
     private let screenshotImporter: ScreenshotImportService
@@ -22,9 +27,7 @@ final class NotchWindowController {
 
     private var outsideClickMonitor: Any?
     private var keyMonitor: Any?
-    /// The first frame application (initial show) must not animate; only later
-    /// mode/screen changes animate.
-    private var didApplyInitialFrame = false
+    private var lastFrameState: FrameState?
 
     init(
         scene: NotchScene,
@@ -75,19 +78,32 @@ final class NotchWindowController {
     private func observeAndApplyFrame() {
         withObservationTracking {
             let mode = viewModel.mode
-            let frame = NotchGeometry.frame(for: mode, on: viewModel.currentScreen)
-            applyFrame(frame, animated: didApplyInitialFrame)
-            didApplyInitialFrame = true
+            let screen = viewModel.currentScreen
+            let state = FrameState(mode: mode, screenID: screen.id)
+            let animated = Self.shouldAnimateFrameTransition(from: lastFrameState, to: state)
+            applyFrame(NotchGeometry.frame(for: mode, on: screen), animated: animated)
+            lastFrameState = state
             applyActivation(for: mode)
         } onChange: { [weak self] in
             Task { @MainActor in self?.observeAndApplyFrame() }
         }
     }
 
-    /// Resizes the panel. Mode changes animate the window frame with the same
-    /// duration/curve as the SwiftUI content (`NotchStyle.modeTransition`) so the
-    /// hardware-notch panel grows/shrinks in lockstep with its contents instead
-    /// of snapping.
+    /// Only regular open/close transitions animate. Dragging must match its
+    /// final hit-test geometry immediately, and display changes must not make the
+    /// panel travel between screens.
+    static func shouldAnimateFrameTransition(from previous: FrameState?, to next: FrameState) -> Bool {
+        guard let previous,
+              previous.screenID == next.screenID,
+              previous.mode != next.mode,
+              previous.mode != .dragging,
+              next.mode != .dragging else {
+            return false
+        }
+        return true
+    }
+
+    /// Resizes the panel with the same duration/curve as the SwiftUI content.
     private func applyFrame(_ frame: NSRect, animated: Bool) {
         guard animated, frame != panel.frame else {
             panel.setFrame(frame, display: true, animate: false)
